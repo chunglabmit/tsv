@@ -7,7 +7,6 @@ xml_path = os.path.join(os.path.dirname(__file__), "example.xml")
 
 
 class TestVolume(unittest.TestCase):
-    def
     def test_xml(self):
         v = volume.TSVVolume.load(xml_path)
         self.assertEqual(v.input_plugin, "tiff2D")
