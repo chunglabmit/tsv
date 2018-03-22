@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE TeraStitcher SYSTEM "TeraStitcher.DTD">
+<TeraStitcher volume_format="TiledXY|2Dseries" input_plugin="tiff2D">
+    <stacks_dir value="/home/user/data/stitching/Color_1" />
+    <voxel_dims V="1.599" H="1.599" D="1" />
+    <origin V="17.156" H="11.126" D="10" />
+    <mechanical_displacements V="2783" H="2784" />
+    <dimensions stack_rows="2" stack_columns="2" stack_slices="4000" />
+    <STACKS>
+        <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="0" COL="0" ABS_V="0" ABS_H="0" ABS_D="0" STITCHABLE="no" DIR_NAME="111260/111260_171560" Z_RANGES="[0,4000)" IMG_REGEX="">
+            <NORTH_displacements />
+            <EAST_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-29" default_displ="0" reliability="0.787502" nccPeak="0.840414" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1703" default_displ="1741" reliability="0.829253" nccPeak="0.885216" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-19" default_displ="0" reliability="0.722427" nccPeak="0.843184" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+            </EAST_displacements>
+            <SOUTH_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1708" default_displ="1741" reliability="0.618931" nccPeak="0.874455" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="27" default_displ="0" reliability="0.631087" nccPeak="0.891663" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-20" default_displ="0" reliability="0.596054" nccPeak="0.84207" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1709" default_displ="1741" reliability="0.875742" nccPeak="0.866778" nccWidth="3" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="27" default_displ="0" reliability="0.879403" nccPeak="0.874159" nccWidth="3" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-30" default_displ="0" reliability="0.841427" nccPeak="0.9079" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1710" default_displ="1741" reliability="0.65488" nccPeak="0.51577" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="29" default_displ="0" reliability="0.660929" nccPeak="0.530979" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-28" default_displ="0" reliability="0.403859" nccPeak="0.569846" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1741" default_displ="1741" reliability="0.472338" nccPeak="0.259823" nccWidth="10" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="27" default_displ="0" reliability="0.523793" nccPeak="0.263492" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="12" default_displ="0" reliability="0.185725" nccPeak="0.259823" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1709" default_displ="1741" reliability="0.59938" nccPeak="0.356086" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="28" default_displ="0" reliability="0.567042" nccPeak="0.404703" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-30" default_displ="0" reliability="0.417268" nccPeak="0.367705" nccWidth="14" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1709" default_displ="1741" reliability="0.687785" nccPeak="0.541968" nccWidth="5" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="28" default_displ="0" reliability="0.67933" nccPeak="0.520203" nccWidth="5" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-30" default_displ="0" reliability="0.559085" nccPeak="0.496441" nccWidth="10" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1708" default_displ="1741" reliability="0.664778" nccPeak="0.540504" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="28" default_displ="0" reliability="0.664178" nccPeak="0.479476" nccWidth="5" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-30" default_displ="0" reliability="0.557781" nccPeak="0.493498" nccWidth="10" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1708" default_displ="1741" reliability="0.724443" nccPeak="0.718062" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="28" default_displ="0" reliability="0.688523" nccPeak="0.643509" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-29" default_displ="0" reliability="0.668389" nccPeak="0.682622" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1707" default_displ="1741" reliability="0.710462" nccPeak="0.762888" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="28" default_displ="0" reliability="0.741088" nccPeak="0.751265" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-26" default_displ="0" reliability="0.650995" nccPeak="0.71746" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1708" default_displ="1741" reliability="0.773602" nccPeak="0.847131" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="28" default_displ="0" reliability="0.808444" nccPeak="0.845841" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-26" default_displ="0" reliability="0.719421" nccPeak="0.83803" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1707" default_displ="1741" reliability="0.712998" nccPeak="0.798771" nccWidth="10" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="28" default_displ="0" reliability="0.775217" nccPeak="0.817251" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-24" default_displ="0" reliability="0.619032" nccPeak="0.766424" nccWidth="15" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1707" default_displ="1741" reliability="0.764565" nccPeak="0.83056" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="28" default_displ="0" reliability="0.772541" nccPeak="0.812168" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-23" default_displ="0" reliability="0.726477" nccPeak="0.822702" nccWidth="10" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1707" default_displ="1741" reliability="0.793257" nccPeak="0.85117" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="27" default_displ="0" reliability="0.787864" nccPeak="0.841092" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-23" default_displ="0" reliability="0.743184" nccPeak="0.82288" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1707" default_displ="1741" reliability="0.805457" nccPeak="0.873784" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="28" default_displ="0" reliability="0.819398" nccPeak="0.866667" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-23" default_displ="0" reliability="0.730695" nccPeak="0.857315" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1707" default_displ="1741" reliability="0.72721" nccPeak="0.851368" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="28" default_displ="0" reliability="0.771881" nccPeak="0.87412" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-22" default_displ="0" reliability="0.699115" nccPeak="0.85295" nccWidth="13" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1708" default_displ="1741" reliability="0.703917" nccPeak="0.860813" nccWidth="13" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="27" default_displ="0" reliability="0.745359" nccPeak="0.906189" nccWidth="12" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-23" default_displ="0" reliability="0.645483" nccPeak="0.844675" nccWidth="17" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1707" default_displ="1741" reliability="0.621563" nccPeak="0.878181" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="27" default_displ="0" reliability="0.64512" nccPeak="0.911527" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-21" default_displ="0" reliability="0.6063" nccPeak="0.856574" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1707" default_displ="1741" reliability="0.617377" nccPeak="0.872256" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="27" default_displ="0" reliability="0.647881" nccPeak="0.915434" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-22" default_displ="0" reliability="0.60499" nccPeak="0.854721" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1708" default_displ="1741" reliability="0.62434" nccPeak="0.882113" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="27" default_displ="0" reliability="0.648393" nccPeak="0.916159" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-23" default_displ="0" reliability="0.618795" nccPeak="0.874263" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1708" default_displ="1741" reliability="0.612494" nccPeak="0.865343" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="27" default_displ="0" reliability="0.648714" nccPeak="0.916614" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-22" default_displ="0" reliability="0.600996" nccPeak="0.849066" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+            </SOUTH_displacements>
+            <WEST_displacements />
+        </Stack>
+        <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="0" COL="1" ABS_V="0" ABS_H="1741" ABS_D="0" STITCHABLE="no" DIR_NAME="139100/139100_171560" Z_RANGES="[0,228)" IMG_REGEX="">
+            <NORTH_displacements />
+            <EAST_displacements />
+            <SOUTH_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1706" default_displ="1741" reliability="0.582142" nccPeak="0.822374" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="31" default_displ="0" reliability="0.646824" nccPeak="0.913939" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-20" default_displ="0" reliability="0.584255" nccPeak="0.825365" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+            </SOUTH_displacements>
+            <WEST_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="29" default_displ="0" reliability="0.787502" nccPeak="0.840414" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1703" default_displ="-1741" reliability="0.829253" nccPeak="0.885216" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="19" default_displ="0" reliability="0.722427" nccPeak="0.843184" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+            </WEST_displacements>
+        </Stack>
+        <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="1" COL="0" ABS_V="1741" ABS_H="0" ABS_D="0" STITCHABLE="no" DIR_NAME="111260/111260_199400" Z_RANGES="[0,4000)" IMG_REGEX="">
+            <NORTH_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1708" default_displ="-1741" reliability="0.618931" nccPeak="0.874455" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-27" default_displ="0" reliability="0.631087" nccPeak="0.891663" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="20" default_displ="0" reliability="0.596054" nccPeak="0.84207" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1709" default_displ="-1741" reliability="0.875742" nccPeak="0.866778" nccWidth="3" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-27" default_displ="0" reliability="0.879403" nccPeak="0.874159" nccWidth="3" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="30" default_displ="0" reliability="0.841427" nccPeak="0.9079" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1710" default_displ="-1741" reliability="0.65488" nccPeak="0.51577" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-29" default_displ="0" reliability="0.660929" nccPeak="0.530979" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="28" default_displ="0" reliability="0.403859" nccPeak="0.569846" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1741" default_displ="-1741" reliability="0.472338" nccPeak="0.259823" nccWidth="10" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-27" default_displ="0" reliability="0.523793" nccPeak="0.263492" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-12" default_displ="0" reliability="0.185725" nccPeak="0.259823" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1709" default_displ="-1741" reliability="0.59938" nccPeak="0.356086" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-28" default_displ="0" reliability="0.567042" nccPeak="0.404703" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="30" default_displ="0" reliability="0.417268" nccPeak="0.367705" nccWidth="14" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1709" default_displ="-1741" reliability="0.687785" nccPeak="0.541968" nccWidth="5" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-28" default_displ="0" reliability="0.67933" nccPeak="0.520203" nccWidth="5" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="30" default_displ="0" reliability="0.559085" nccPeak="0.496441" nccWidth="10" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1708" default_displ="-1741" reliability="0.664778" nccPeak="0.540504" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-28" default_displ="0" reliability="0.664178" nccPeak="0.479476" nccWidth="5" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="30" default_displ="0" reliability="0.557781" nccPeak="0.493498" nccWidth="10" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1708" default_displ="-1741" reliability="0.724443" nccPeak="0.718062" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-28" default_displ="0" reliability="0.688523" nccPeak="0.643509" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="29" default_displ="0" reliability="0.668389" nccPeak="0.682622" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1707" default_displ="-1741" reliability="0.710462" nccPeak="0.762888" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-28" default_displ="0" reliability="0.741088" nccPeak="0.751265" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="26" default_displ="0" reliability="0.650995" nccPeak="0.71746" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1708" default_displ="-1741" reliability="0.773602" nccPeak="0.847131" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-28" default_displ="0" reliability="0.808444" nccPeak="0.845841" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="26" default_displ="0" reliability="0.719421" nccPeak="0.83803" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1707" default_displ="-1741" reliability="0.712998" nccPeak="0.798771" nccWidth="10" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-28" default_displ="0" reliability="0.775217" nccPeak="0.817251" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="24" default_displ="0" reliability="0.619032" nccPeak="0.766424" nccWidth="15" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1707" default_displ="-1741" reliability="0.764565" nccPeak="0.83056" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-28" default_displ="0" reliability="0.772541" nccPeak="0.812168" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="23" default_displ="0" reliability="0.726477" nccPeak="0.822702" nccWidth="10" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1707" default_displ="-1741" reliability="0.793257" nccPeak="0.85117" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-27" default_displ="0" reliability="0.787864" nccPeak="0.841092" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="23" default_displ="0" reliability="0.743184" nccPeak="0.82288" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1707" default_displ="-1741" reliability="0.805457" nccPeak="0.873784" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-28" default_displ="0" reliability="0.819398" nccPeak="0.866667" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="23" default_displ="0" reliability="0.730695" nccPeak="0.857315" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1707" default_displ="-1741" reliability="0.72721" nccPeak="0.851368" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-28" default_displ="0" reliability="0.771881" nccPeak="0.87412" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="22" default_displ="0" reliability="0.699115" nccPeak="0.85295" nccWidth="13" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1708" default_displ="-1741" reliability="0.703917" nccPeak="0.860813" nccWidth="13" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-27" default_displ="0" reliability="0.745359" nccPeak="0.906189" nccWidth="12" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="23" default_displ="0" reliability="0.645483" nccPeak="0.844675" nccWidth="17" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1707" default_displ="-1741" reliability="0.621563" nccPeak="0.878181" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-27" default_displ="0" reliability="0.64512" nccPeak="0.911527" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="21" default_displ="0" reliability="0.6063" nccPeak="0.856574" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1707" default_displ="-1741" reliability="0.617377" nccPeak="0.872256" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-27" default_displ="0" reliability="0.647881" nccPeak="0.915434" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="22" default_displ="0" reliability="0.60499" nccPeak="0.854721" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1708" default_displ="-1741" reliability="0.62434" nccPeak="0.882113" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-27" default_displ="0" reliability="0.648393" nccPeak="0.916159" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="23" default_displ="0" reliability="0.618795" nccPeak="0.874263" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1708" default_displ="-1741" reliability="0.612494" nccPeak="0.865343" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-27" default_displ="0" reliability="0.648714" nccPeak="0.916614" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="22" default_displ="0" reliability="0.600996" nccPeak="0.849066" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+            </NORTH_displacements>
+            <EAST_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-24" default_displ="0" reliability="0.613859" nccPeak="0.867275" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1707" default_displ="1741" reliability="0.753856" nccPeak="0.595023" nccWidth="3" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-19" default_displ="0" reliability="0.54939" nccPeak="0.776002" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-31" default_displ="0" reliability="0.869564" nccPeak="0.854247" nccWidth="3" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1703" default_displ="1741" reliability="0.88057" nccPeak="0.876506" nccWidth="3" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-13" default_displ="0" reliability="0.819571" nccPeak="0.89965" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-31" default_displ="0" reliability="0.57453" nccPeak="0.811597" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1702" default_displ="1741" reliability="0.576101" nccPeak="0.813821" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-14" default_displ="0" reliability="0.57295" nccPeak="0.80936" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-31" default_displ="0" reliability="0.594908" nccPeak="0.840448" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1702" default_displ="1741" reliability="0.599762" nccPeak="0.847318" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-17" default_displ="0" reliability="0.589975" nccPeak="0.833463" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-31" default_displ="0" reliability="0.612619" nccPeak="0.86552" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1702" default_displ="1741" reliability="0.624322" nccPeak="0.882087" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-18" default_displ="0" reliability="0.497794" nccPeak="0.702936" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-31" default_displ="0" reliability="0.628007" nccPeak="0.867066" nccWidth="21" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1703" default_displ="1741" reliability="0.745404" nccPeak="0.906264" nccWidth="12" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-14" default_displ="0" reliability="0.583257" nccPeak="0.823953" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-30" default_displ="0" reliability="0.718979" nccPeak="0.862509" nccWidth="12" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1703" default_displ="1741" reliability="0.794998" nccPeak="0.914619" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-17" default_displ="0" reliability="0.618426" nccPeak="0.803168" nccWidth="17" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-29" default_displ="0" reliability="0.749754" nccPeak="0.834714" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1702" default_displ="1741" reliability="0.788801" nccPeak="0.903824" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-18" default_displ="0" reliability="0.704425" nccPeak="0.751607" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-29" default_displ="0" reliability="0.756523" nccPeak="0.815699" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1703" default_displ="1741" reliability="0.823381" nccPeak="0.90658" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-20" default_displ="0" reliability="0.694955" nccPeak="0.697591" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-29" default_displ="0" reliability="0.799749" nccPeak="0.829145" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1704" default_displ="1741" reliability="0.835411" nccPeak="0.896721" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-19" default_displ="0" reliability="0.758764" nccPeak="0.74815" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-29" default_displ="0" reliability="0.785563" nccPeak="0.836776" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1705" default_displ="1741" reliability="0.847322" nccPeak="0.918799" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-20" default_displ="0" reliability="0.732446" nccPeak="0.734118" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-28" default_displ="0" reliability="0.787675" nccPeak="0.872683" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1705" default_displ="1741" reliability="0.829047" nccPeak="0.91685" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-22" default_displ="0" reliability="0.770165" nccPeak="0.871088" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-29" default_displ="0" reliability="0.758124" nccPeak="0.849699" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1705" default_displ="1741" reliability="0.796239" nccPeak="0.888089" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-21" default_displ="0" reliability="0.739762" nccPeak="0.816689" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-28" default_displ="0" reliability="0.729624" nccPeak="0.855489" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1706" default_displ="1741" reliability="0.780959" nccPeak="0.8901" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-22" default_displ="0" reliability="0.707696" nccPeak="0.817819" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-29" default_displ="0" reliability="0.762922" nccPeak="0.886229" nccWidth="10" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1706" default_displ="1741" reliability="0.800248" nccPeak="0.923732" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-22" default_displ="0" reliability="0.694419" nccPeak="0.845244" nccWidth="13" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-29" default_displ="0" reliability="0.708866" nccPeak="0.908838" nccWidth="15" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1706" default_displ="1741" reliability="0.760435" nccPeak="0.930903" nccWidth="12" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-21" default_displ="0" reliability="0.626836" nccPeak="0.885646" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-29" default_displ="0" reliability="0.653088" nccPeak="0.922805" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1706" default_displ="1741" reliability="0.664817" nccPeak="0.939406" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-21" default_displ="0" reliability="0.640921" nccPeak="0.905583" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-29" default_displ="0" reliability="0.651617" nccPeak="0.920722" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1706" default_displ="1741" reliability="0.662452" nccPeak="0.936058" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-21" default_displ="0" reliability="0.640408" nccPeak="0.904857" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-30" default_displ="0" reliability="0.652702" nccPeak="0.922258" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1707" default_displ="1741" reliability="0.587281" nccPeak="0.82965" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-20" default_displ="0" reliability="0.569838" nccPeak="0.804954" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-30" default_displ="0" reliability="0.647702" nccPeak="0.91518" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="1707" default_displ="1741" reliability="0.65638" nccPeak="0.927464" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="-17" default_displ="0" reliability="0.638784" nccPeak="0.902558" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+            </EAST_displacements>
+            <SOUTH_displacements />
+            <WEST_displacements />
+        </Stack>
+        <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="1" COL="1" ABS_V="1741" ABS_H="1741" ABS_D="0" STITCHABLE="no" DIR_NAME="139100/139100_199400" Z_RANGES="[0,4000)" IMG_REGEX="">
+            <NORTH_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1706" default_displ="-1741" reliability="0.582142" nccPeak="0.822374" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-31" default_displ="0" reliability="0.646824" nccPeak="0.913939" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="20" default_displ="0" reliability="0.584255" nccPeak="0.825365" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+            </NORTH_displacements>
+            <EAST_displacements />
+            <SOUTH_displacements />
+            <WEST_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="24" default_displ="0" reliability="0.613859" nccPeak="0.867275" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1707" default_displ="-1741" reliability="0.753856" nccPeak="0.595023" nccWidth="3" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="19" default_displ="0" reliability="0.54939" nccPeak="0.776002" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="31" default_displ="0" reliability="0.869564" nccPeak="0.854247" nccWidth="3" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1703" default_displ="-1741" reliability="0.88057" nccPeak="0.876506" nccWidth="3" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="13" default_displ="0" reliability="0.819571" nccPeak="0.89965" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="31" default_displ="0" reliability="0.57453" nccPeak="0.811597" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1702" default_displ="-1741" reliability="0.576101" nccPeak="0.813821" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="14" default_displ="0" reliability="0.57295" nccPeak="0.80936" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="31" default_displ="0" reliability="0.594908" nccPeak="0.840448" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1702" default_displ="-1741" reliability="0.599762" nccPeak="0.847318" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="17" default_displ="0" reliability="0.589975" nccPeak="0.833463" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="31" default_displ="0" reliability="0.612619" nccPeak="0.86552" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1702" default_displ="-1741" reliability="0.624322" nccPeak="0.882087" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="18" default_displ="0" reliability="0.497794" nccPeak="0.702936" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="31" default_displ="0" reliability="0.628007" nccPeak="0.867066" nccWidth="21" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1703" default_displ="-1741" reliability="0.745404" nccPeak="0.906264" nccWidth="12" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="14" default_displ="0" reliability="0.583257" nccPeak="0.823953" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="30" default_displ="0" reliability="0.718979" nccPeak="0.862509" nccWidth="12" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1703" default_displ="-1741" reliability="0.794998" nccPeak="0.914619" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="17" default_displ="0" reliability="0.618426" nccPeak="0.803168" nccWidth="17" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="29" default_displ="0" reliability="0.749754" nccPeak="0.834714" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1702" default_displ="-1741" reliability="0.788801" nccPeak="0.903824" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="18" default_displ="0" reliability="0.704425" nccPeak="0.751607" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="29" default_displ="0" reliability="0.756523" nccPeak="0.815699" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1703" default_displ="-1741" reliability="0.823381" nccPeak="0.90658" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="20" default_displ="0" reliability="0.694955" nccPeak="0.697591" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="29" default_displ="0" reliability="0.799749" nccPeak="0.829145" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1704" default_displ="-1741" reliability="0.835411" nccPeak="0.896721" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="19" default_displ="0" reliability="0.758764" nccPeak="0.74815" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="29" default_displ="0" reliability="0.785563" nccPeak="0.836776" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1705" default_displ="-1741" reliability="0.847322" nccPeak="0.918799" nccWidth="6" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="20" default_displ="0" reliability="0.732446" nccPeak="0.734118" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="28" default_displ="0" reliability="0.787675" nccPeak="0.872683" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1705" default_displ="-1741" reliability="0.829047" nccPeak="0.91685" nccWidth="7" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="22" default_displ="0" reliability="0.770165" nccPeak="0.871088" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="29" default_displ="0" reliability="0.758124" nccPeak="0.849699" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1705" default_displ="-1741" reliability="0.796239" nccPeak="0.888089" nccWidth="8" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="21" default_displ="0" reliability="0.739762" nccPeak="0.816689" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="28" default_displ="0" reliability="0.729624" nccPeak="0.855489" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1706" default_displ="-1741" reliability="0.780959" nccPeak="0.8901" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="22" default_displ="0" reliability="0.707696" nccPeak="0.817819" nccWidth="11" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="29" default_displ="0" reliability="0.762922" nccPeak="0.886229" nccWidth="10" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1706" default_displ="-1741" reliability="0.800248" nccPeak="0.923732" nccWidth="9" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="22" default_displ="0" reliability="0.694419" nccPeak="0.845244" nccWidth="13" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="29" default_displ="0" reliability="0.708866" nccPeak="0.908838" nccWidth="15" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1706" default_displ="-1741" reliability="0.760435" nccPeak="0.930903" nccWidth="12" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="21" default_displ="0" reliability="0.626836" nccPeak="0.885646" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="29" default_displ="0" reliability="0.653088" nccPeak="0.922805" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1706" default_displ="-1741" reliability="0.664817" nccPeak="0.939406" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="21" default_displ="0" reliability="0.640921" nccPeak="0.905583" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="29" default_displ="0" reliability="0.651617" nccPeak="0.920722" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1706" default_displ="-1741" reliability="0.662452" nccPeak="0.936058" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="21" default_displ="0" reliability="0.640408" nccPeak="0.904857" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="30" default_displ="0" reliability="0.652702" nccPeak="0.922258" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1707" default_displ="-1741" reliability="0.587281" nccPeak="0.82965" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="20" default_displ="0" reliability="0.569838" nccPeak="0.804954" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="30" default_displ="0" reliability="0.647702" nccPeak="0.91518" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <H displ="-1707" default_displ="-1741" reliability="0.65638" nccPeak="0.927464" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                    <D displ="17" default_displ="0" reliability="0.638784" nccPeak="0.902558" nccWidth="25" nccWRangeThr="25" nccInvWidth="26" delay="25" />
+                </Displacement>
+            </WEST_displacements>
+        </Stack>
+    </STACKS>
+</TeraStitcher>
