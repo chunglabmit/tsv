@@ -5,7 +5,8 @@
 
 Library to render terastitched volumes
 
-This is a pure Python library that uses the XML output of Terastitcher
+This is a pure Python library that uses the XML output of 
+[Terastitcher](https://github.com/abria/TeraStitcher)
 to load stitched volumes. Example usage:
 
 ```python
