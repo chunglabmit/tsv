@@ -16,7 +16,7 @@ def convert_to_2D_tif(xml_path, output_pattern,
                       volume=None,
                       dtype=None,
                       silent=False,
-                      compression=3,
+                      compression=4,
                       cores=multiprocessing.cpu_count()):
     """Convert a terastitched volume to TIF
 
@@ -87,7 +87,7 @@ def main():
         ' Default is whole volume.')
     parser.add_argument(
         "--compression",
-        default=3,
+        default=4,
         type=int,
         help="TIFF compression level (0-9, default=3)")
     parser.add_argument(
