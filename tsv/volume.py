@@ -1,7 +1,11 @@
 """volume.py - representation of a Terastitcher volume"""
 
 import abc
-import enum
+import sys
+if sys.version >= "3.6":
+    import enum
+else:
+    import aenum as enum
 import itertools
 import numpy as np
 import os
