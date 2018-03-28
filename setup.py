@@ -18,8 +18,7 @@ setup(
     author="Kwanghun Chung Lab",
     packages=["tsv"],
     entry_points={ 'console_scripts': [
-        'phathom-segmentation=phathom.segmentation:main',
-        'phathom-score-centroids=phathom.score.main'
+        "tsv-convert-2D-tif=tsv.convert.main"
     ]},
     url="https://github.com/chunglabmit/tsv",
     license="MIT",
