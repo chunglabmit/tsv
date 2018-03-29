@@ -498,6 +498,12 @@ class TSVVolume:
         tree = ElementTree.parse(path)
         return TSVVolume(tree)
 
+    def flattened_stacks(self):
+        """Return the stacks in row-major order
+
+        """
+        return sum(self.stacks, [])
+
     def imread(self, volume, dtype):
         """Read the given volume
 
@@ -509,7 +515,7 @@ class TSVVolume:
         result = np.zeros(volume.shape, np.float32)
         multiplier = np.zeros(volume.shape, np.float32)
         intersections = []
-        for stack in sum(self.stacks, []):
+        for stack in self.flattened_stacks():
             if stack.intersects(volume):
                 intersections.append((stack, stack.intersection(volume)))
 
@@ -544,6 +550,27 @@ class TSVVolume:
                              np.iinfo(dtype).min,
                              np.iinfo(dtype).max)
         return result.astype(dtype)
+
+    def make_diagnostic_img(self, volume:VExtentBase):
+        """Create a diagnostic image with separate channels for each stack
+
+        :param volume: The coordinates to use to extract the diagnostic image
+        :returns: a 4D array with the last index being the channel and the
+        indices of the channel being the stacks intersecting the volume in
+        row-major order.
+        """
+        stacks = [s for s in self.flattened_stacks() if s.intersects(volume)]
+        result = np.zeros(
+            (volume.shape[0], volume.shape[1], volume.shape[2], len(stacks)),
+            self.dtype)
+        for idx, stack in enumerate(stacks):
+            intersection = stack.intersection(volume)
+            img = stack.imread(intersection)
+            result[intersection.z0 - volume.z0:intersection.z1 - volume.z0,
+                   intersection.y0 - volume.y0:intersection.y1 - volume.y0,
+                   intersection.x0 - volume.x0:intersection.x1 - volume.x0,
+                   idx] = img.astype(result.dtype)
+        return result
 
     @property
     def volume(self) -> VExtent:

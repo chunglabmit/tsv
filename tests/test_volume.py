@@ -391,6 +391,13 @@ class TestTSVVolume(unittest.TestCase):
         self.assertEqual(len(v.stacks[0]), 2)
         self.assertEqual(len(v.stacks[1]), 2)
 
+    def test_flattened_stacks(self):
+        v = volume.TSVVolume.load(xml_path)
+        for fs, s in zip(v.flattened_stacks(),
+                         (v.stacks[0][0], v.stacks[0][1],
+                          v.stacks[1][0], v.stacks[1][1])):
+            self.assertEqual(fs, s)
+
     def test_imread_no_overlap(self):
         with make_case() as ps:
             xml_path, stacks = ps
@@ -462,6 +469,25 @@ class TestTSVVolume(unittest.TestCase):
             v = volume.TSVVolume.load(xml_path)
             img = v.imread(v.volume, np.uint16)
             self.assertTrue(np.all(np.abs(img.astype(np.int32) - 100) < 2))
+
+    def test_diagnostic_img(self):
+        with make_case() as ps:
+            xml_path, stacks = ps
+            v = volume.TSVVolume.load(xml_path)
+            e = volume.VExtent(1000, 1024, 1000, 1024, 0, 2)
+            img = v.make_diagnostic_img(e)
+            self.assertTupleEqual(tuple(img.shape[:-1]), tuple(e.shape))
+            self.assertEqual(img.shape[-1], 4)
+            for z in range(2):
+                np.testing.assert_equal(img[z, :, :, 0],
+                                        stacks[0][0][z][-24:, -24:])
+                np.testing.assert_equal(img[z, :, :, 1],
+                                        stacks[0][1][z][-24:, :24])
+                np.testing.assert_equal(img[z, :, :, 2],
+                                        stacks[1][0][z][:24, -24:])
+                np.testing.assert_equal(img[z, :, :, 3],
+                                        stacks[1][1][z][:24, :24])
+
 
     def test_volume(self):
         with make_case() as ps:
