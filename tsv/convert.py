@@ -9,7 +9,7 @@ from .volume import VExtent, TSVVolume
 import tqdm
 
 
-def convert_to_2D_tif(v, xml_path, output_pattern,
+def convert_to_2D_tif(xml_path, output_pattern,
                       mipmap_level=None,
                       volume=None,
                       dtype=None,
