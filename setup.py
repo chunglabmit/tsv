@@ -7,7 +7,8 @@ with open("./README.md") as fd:
 
 install_requires = [
         "numpy",
-        "tifffile"
+        "tifffile",
+        "tqdm"
     ]
 #
 # Backport support for enum.Flags

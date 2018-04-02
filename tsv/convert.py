@@ -8,10 +8,8 @@ import tifffile
 from .volume import VExtent, TSVVolume
 import tqdm
 
-v = None
 
-
-def convert_to_2D_tif(xml_path, output_pattern,
+def convert_to_2D_tif(v, xml_path, output_pattern,
                       mipmap_level=None,
                       volume=None,
                       dtype=None,
@@ -31,7 +29,6 @@ def convert_to_2D_tif(xml_path, output_pattern,
                   by the bit depth
     :param cores: # of processes to run simultaneously
     """
-    global v
     v = TSVVolume.load(xml_path)
     if volume is None:
         volume = v.volume
@@ -46,14 +43,14 @@ def convert_to_2D_tif(xml_path, output_pattern,
         for z in range(volume.z0, volume.z1, decimation):
             futures.append(pool.apply_async(
                 convert_one_plane,
-                (compression, decimation, dtype, mipmap_level, output_pattern,
+                (v, compression, decimation, dtype, mipmap_level, output_pattern,
                  volume, z)))
         for future in tqdm.tqdm(futures):
             future.get()
 
 
-def convert_one_plane(compression, decimation, dtype, mipmap_level, output_pattern, volume, z):
-    global v
+def convert_one_plane(v, compression, decimation, dtype, mipmap_level,
+                      output_pattern, volume, z):
 
     mini_volume = VExtent(
         volume.x0, volume.x1, volume.y0, volume.y1, z, z + 1)
@@ -71,7 +68,6 @@ def make_diag_stack(xml_path, output_pattern,
                     silent=False,
                     compression=4,
                     cores=multiprocessing.cpu_count()):
-    global v
     v = TSVVolume.load(xml_path)
     if volume is None:
         volume = v.volume
@@ -83,7 +79,7 @@ def make_diag_stack(xml_path, output_pattern,
         decimation = 1
     if cores == 1:
         for z in tqdm.tqdm(range(volume.z0, volume.z1, decimation)):
-            make_diag_plane(compression, decimation, dtype, mipmap_level,
+            make_diag_plane(v, compression, decimation, dtype, mipmap_level,
                             output_pattern,volume, z)
         return
 
@@ -92,14 +88,13 @@ def make_diag_stack(xml_path, output_pattern,
         for z in range(volume.z0, volume.z1, decimation):
             futures.append(pool.apply_async(
                 make_diag_plane,
-                (compression, decimation, dtype, mipmap_level, output_pattern,
-                 volume, z)))
+                (v, compression, decimation, dtype, mipmap_level,
+                 output_pattern, volume, z)))
         for future in tqdm.tqdm(futures):
             future.get()
 
 
-def make_diag_plane(compression, decimation, dtype, mipmap_level, output_pattern, volume, z):
-    global v
+def make_diag_plane(v, compression, decimation, dtype, mipmap_level, output_pattern, volume, z):
 
     mini_volume = VExtent(
         volume.x0, volume.x1, volume.y0, volume.y1, z, z + 1)
