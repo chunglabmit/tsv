@@ -19,7 +19,8 @@ import os
 import sys
 import tqdm
 
-def main(args):
+
+def main(args=sys.argv[1:]):
     parser = argparse.ArgumentParser()
     parser.add_argument("--n-digits", default=6, type=int,
                         help="The number of digits in the final file name.")
@@ -35,6 +36,6 @@ def main(args):
         os.rename(path, dest)
 
 if __name__=="__main__":
-    main(sys.args[1:])
+    main(sys.argv[1:])
 
 
