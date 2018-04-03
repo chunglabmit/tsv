@@ -2,6 +2,7 @@ import contextlib
 import os
 import unittest
 import shutil
+import subprocess
 import tempfile
 
 from tsv.renumber import main
@@ -26,7 +27,8 @@ class TestRenumber(unittest.TestCase):
         for file_name, expected_file in zip(my_files, expected):
             path = os.path.join(root, expected_file)
             self.assertTrue(os.path.exists(path))
-            self.assertEqual(file_name, open(path).read())
+            with open(path) as fd:
+                self.assertEqual(file_name, fd.read())
 
     def test_renumber_default_digits(self):
         my_files = [
@@ -57,6 +59,9 @@ class TestRenumber(unittest.TestCase):
         with self.make_case(my_files) as root:
             main(["--n-digits=2", root])
             self.check_case(expected, my_files, root)
+
+    def test_command_line(self):
+        subprocess.check_call(["tsv-renumber", "--help"])
 
 
 if __name__ == '__main__':

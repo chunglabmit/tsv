@@ -43,19 +43,19 @@ def convert_to_2D_tif(xml_path, output_pattern,
         for z in range(volume.z0, volume.z1, decimation):
             futures.append(pool.apply_async(
                 convert_one_plane,
-                (v, compression, decimation, dtype, mipmap_level, output_pattern,
+                (v, compression, decimation, dtype, output_pattern,
                  volume, z)))
         for future in tqdm.tqdm(futures):
             future.get()
 
 
-def convert_one_plane(v, compression, decimation, dtype, mipmap_level,
+def convert_one_plane(v, compression, decimation, dtype,
                       output_pattern, volume, z):
 
     mini_volume = VExtent(
         volume.x0, volume.x1, volume.y0, volume.y1, z, z + 1)
     plane = v.imread(mini_volume, dtype)[0]
-    if mipmap_level is not None:
+    if decimation > 1:
         plane = plane[::decimation, ::decimation]
     path = output_pattern.format(z=z)
     tifffile.imsave(path, plane, compress=compression)
