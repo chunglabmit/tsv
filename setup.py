@@ -27,7 +27,8 @@ setup(
     packages=["tsv"],
     entry_points={ 'console_scripts': [
         "tsv-convert-2D-tif=tsv.convert:main",
-        "tsv-diag-stack=tsv.convert:diag"
+        "tsv-diag-stack=tsv.convert:diag",
+        "tsv-renumber=tsv.renumber:main"
     ]},
     url="https://github.com/chunglabmit/tsv",
     license="MIT",
