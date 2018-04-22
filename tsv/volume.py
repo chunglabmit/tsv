@@ -12,7 +12,7 @@ import os
 import re
 import tifffile
 from xml.etree import ElementTree
-
+from .raw import raw_imread
 
 def get_dim_tuple(element):
     """Given an element, extract the Terastitcher z, y, x dimensions
@@ -179,13 +179,16 @@ class VExtent(VExtentBase):
 
 class TSVStack(VExtentBase):
     def __init__(self, element, offset:Location, root_dir,
-                 ordering_pattern="[^0-9]*(\\d+).*\\.tiff?"):
+                 ordering_pattern=None,
+                 input_plugin=None):
         """Initialize a stack from a "Stack" element
 
         :param element: an ElementTree element (with the "Stack" tag)
         :param root_dir: the root directory of the directory hierarchy
         :param ordering_pattern: how to find the image order # - an expression
         that extracts a numeric z from the path name.
+        :param input_plugin: the input plugin that was used to read the files
+        in TeraStitcher
         """
         self.root_dir = root_dir
         self.n_chans = int(element.attrib["N_CHANS"])
@@ -196,6 +199,7 @@ class TSVStack(VExtentBase):
         self._y0 = offset.y
         self._z0 = offset.z
         self.dir_name = element.attrib["DIR_NAME"]
+        self.input_plugin = input_plugin
         z_ranges = element.attrib["Z_RANGES"]
         z0, z1 = map(int, z_ranges[1:-1].split(","))
         if z_ranges.startswith("["):
@@ -207,6 +211,9 @@ class TSVStack(VExtentBase):
         else:
             self.z1slice = z1+1
         self.img_regex = element.attrib["IMG_REGEX"]
+        if ordering_pattern is None:
+            ordering_pattern = "[^0-9]*(\\d+).*\\.raw" if input_plugin == "raw"\
+                               else "[^0-9]*(\\d+).*\\.tiff?"
         self.ordering_pattern = ordering_pattern
         self.__paths = None
         self.__x1 = None
@@ -233,7 +240,7 @@ class TSVStack(VExtentBase):
 
     def __set_x1y1(self):
         if self.__x1 is None:
-            img = tifffile.imread(self.paths[0])
+            img = self.read_plane(self.paths[0])
             self.__dtype = img.dtype
             height, width = img.shape[-2:]
             self.__x1 = self.x0 + width
@@ -273,6 +280,12 @@ class TSVStack(VExtentBase):
         self.__set_x1y1()
         return self.__dtype
 
+    def read_plane(self, path):
+        if self.input_plugin == "raw":
+            return raw_imread(path)
+        else:
+            return tifffile.imread(path)
+
     def imread(self, volume, result = None):
         """Read the image data from a block
 
@@ -284,7 +297,7 @@ class TSVStack(VExtentBase):
         if result is None:
             result = np.zeros(volume.shape, self.dtype)
         for z in range(volume.z0, volume.z1):
-            plane = tifffile.imread(self.paths[z - self.z0])
+            plane = self.read_plane(self.paths[z - self.z0])
             result[z - volume.z0] = \
                 plane[volume.y0 - self.y0:volume.y1 - self.y0,
                       volume.x0 - self.x0:volume.x1 - self.x0]
@@ -421,8 +434,8 @@ class TSVVolume:
         self.voxel_dims = get_dim_tuple(root.find("voxel_dims"))
         self.origin = get_dim_tuple(root.find("origin"))
         md = root.find("mechanical_displacements")
-        self.mechanical_displacement_x = int(md.attrib["H"])
-        self.mechanical_displacement_y = int(md.attrib["V"])
+        self.mechanical_displacement_x = float(md.attrib["H"])
+        self.mechanical_displacement_y = float(md.attrib["V"])
         dims = root.find("dimensions")
         self.stack_rows = int(dims.attrib["stack_rows"])
         self.stack_columns = int(dims.attrib["stack_columns"])
@@ -489,7 +502,8 @@ class TSVVolume:
             self.offsets[row][column] = offset
             self.stacks[row][column] = TSVStack(selems[row][column],
                                                 offset,
-                                                self.stacks_dir)
+                                                self.stacks_dir,
+                                                input_plugin=self.input_plugin)
 
 
     @staticmethod

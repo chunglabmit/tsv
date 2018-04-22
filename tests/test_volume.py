@@ -5,8 +5,8 @@ import shutil
 import tempfile
 import tifffile
 import unittest
-from xml.etree import ElementTree
 from tsv import volume
+from tsv.raw import raw_imsave
 
 xml_path = os.path.join(os.path.dirname(__file__), "example.xml")
 
@@ -14,16 +14,19 @@ FN_PATTERN = "%08d.tif"
 
 
 @contextlib.contextmanager
-def make_case(constant_value = None):
+def make_case(constant_value = None, use_raw=False):
     """Make a xml file and stacks for testing
 
     :param constant_value: make all pixels this value
+    :param use_raw: if True, make a test case using .raw files.
     """
     tempdir = tempfile.mkdtemp()
     try:
+        input_plugin = "raw" if use_raw else "tiff2D"
         xml_path = os.path.join(tempdir, "example.xml")
         with open(xml_path, "w") as fd:
-            fd.write(xml_template.format(tempdir=tempdir))
+            fd.write(xml_template.format(tempdir=tempdir,
+                                         input_plugin=input_plugin))
         r = np.random.RandomState(1234)
         subdirs = [["000000/000000_000000",
                     "000000/000000_001000"],
@@ -44,7 +47,10 @@ def make_case(constant_value = None):
                 os.makedirs(abs_subdir)
                 for i, plane in enumerate(stack):
                     filename = os.path.join(abs_subdir, FN_PATTERN % (i + 1))
-                    tifffile.imsave(filename, plane)
+                    if input_plugin == "raw":
+                        raw_imsave(filename, plane)
+                    else:
+                        tifffile.imsave(filename, plane)
         yield xml_path, stacks
     finally:
         shutil.rmtree(tempdir)
@@ -162,6 +168,15 @@ class TestTSVStack(unittest.TestCase):
         with make_case() as ps:
             xml_path, stacks = ps
             v = volume.TSVVolume.load(xml_path)
+            e = volume.VExtent(0, 10, 11, 21, 0, 2)
+            img = v.stacks[0][0].imread(e)
+            np.testing.assert_equal(img[0], stacks[0][0][0][11:21, :10])
+            np.testing.assert_equal(img[1], stacks[0][0][1][11:21, :10])
+
+    def test_imread_raw(self):
+        with make_case(use_raw=True) as ps:
+            my_xml_path, stacks = ps
+            v = volume.TSVVolume.load(my_xml_path)
             e = volume.VExtent(0, 10, 11, 21, 0, 2)
             img = v.stacks[0][0].imread(e)
             np.testing.assert_equal(img[0], stacks[0][0][0][11:21, :10])
@@ -504,7 +519,7 @@ class TestTSVVolume(unittest.TestCase):
 """
 xml_template = """<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE TeraStitcher SYSTEM "TeraStitcher.DTD">
-<TeraStitcher volume_format="TiledXY|2Dseries" input_plugin="tiff2D">
+<TeraStitcher volume_format="TiledXY|2Dseries" input_plugin="{input_plugin:s}">
     <stacks_dir value="{tempdir:s}" />
     <voxel_dims V="1.599" H="1.599" D="1" />
     <origin V="17.156" H="11.126" D="10" />
