@@ -48,6 +48,7 @@ def make_case(constant_value = None, use_raw=False):
                 for i, plane in enumerate(stack):
                     filename = os.path.join(abs_subdir, FN_PATTERN % (i + 1))
                     if input_plugin == "raw":
+                        filename = filename[:-3] + "raw"
                         raw_imsave(filename, plane)
                     else:
                         tifffile.imsave(filename, plane)
