@@ -15,9 +15,27 @@ def raw_imread(path):
         path,
         dtype=">u4",
         mode="r", shape=(2,))
-    width, height = as_uint32[:2]
+    width_be, height_be = as_uint32[:2]
+    del as_uint32
+    as_uint32 = np.memmap(
+        path,
+        dtype="<u4",
+        mode="r", shape=(2,))
+    width_le, height_le = as_uint32[:2]
+    del as_uint32
+    #
+    # Heuristic, detect endianness by assuming that the smaller width is
+    # the right one. Works for widths < 64K
+    #
+    if width_le < width_be:
+        width, height = width_le, height_le
+        dtype = "<u2"
+    else:
+        width, height = width_be, height_be
+        dtype = ">u2"
+
     return np.memmap(path,
-                     dtype=">u2",
+                     dtype=dtype,
                      mode="r",
                      offset=8,
                      shape=(height, width))
@@ -31,13 +49,13 @@ def raw_imsave(path, img):
 
     as_uint32 = np.memmap(
         path,
-        dtype=">u4",
+        dtype=np.uint32,
         mode="w+", shape=(2,))
     as_uint32[0] = img.shape[1]
     as_uint32[1] = img.shape[0]
     del as_uint32
     as_uint16 = np.memmap(path,
-                     dtype=">u2",
+                     dtype=np.uint16,
                      mode="r+",
                      offset=8,
                      shape=img.shape)
