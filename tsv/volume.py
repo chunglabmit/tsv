@@ -189,6 +189,8 @@ class TSVStack(VExtentBase):
         that extracts a numeric z from the path name.
         :param input_plugin: the input plugin that was used to read the files
         in TeraStitcher
+        :param ignore_z_displacement: Set the Z displacement to zero, assuming
+        that the stage always returns to the same place.
         """
         self.root_dir = root_dir
         self.n_chans = int(element.attrib["N_CHANS"])
@@ -421,11 +423,15 @@ def get_distance_from_edge(tgt:VExtentBase, stack:VExtentBase, ostack:VExtentBas
 
 
 class TSVVolume:
-    def __init__(self, tree):
+    def __init__(self, tree,
+                 ignore_z_offsets=False):
         """Initialize from an xml.etree.ElementTree
 
         :param tree: a tree, e.g. as loaded from ElementTree.parse(xml_path)
+        :param ignore_z_offsets: if True, ignore Z offsets (e.g. if the stage
+        always returns to the same Z coordinate repeatably)
         """
+        self.ignore_z_offsets = ignore_z_offsets
         root = tree.getroot()
         assert root.tag == "TeraStitcher"
         self.input_plugin = root.attrib["input_plugin"]
@@ -466,7 +472,8 @@ class TSVVolume:
                     dn = child.find("NORTH_displacements").getchildren()[0]
                     xoff = -int(dn.find("H").attrib["displ"])
                     yoff = -int(dn.find("V").attrib["displ"])
-                    zoff = -int(dn.find("D").attrib["displ"])
+                    zoff = 0 if self.ignore_z_offsets \
+                                else -int(dn.find("D").attrib["displ"])
                     offset = Location(prev.x + xoff,
                                       prev.y + yoff,
                                       prev.z + zoff)
@@ -476,7 +483,8 @@ class TSVVolume:
                     dn = child.find("WEST_displacements").getchildren()[0]
                     xoff = -int(dn.find("H").attrib["displ"])
                     yoff = -int(dn.find("V").attrib["displ"])
-                    zoff = -int(dn.find("D").attrib["displ"])
+                    zoff = 0 if self.ignore_z_offsets \
+                            else -int(dn.find("D").attrib["displ"])
                     offset = Location(prev.x + xoff,
                                       prev.y + yoff,
                                       prev.z + zoff)
@@ -507,10 +515,10 @@ class TSVVolume:
 
 
     @staticmethod
-    def load(path):
+    def load(path, ignore_z_offsets = False):
         """Load a volume from an XML file"""
         tree = ElementTree.parse(path)
-        return TSVVolume(tree)
+        return TSVVolume(tree, ignore_z_offsets)
 
     def flattened_stacks(self):
         """Return the stacks in row-major order

@@ -15,7 +15,8 @@ def convert_to_2D_tif(xml_path, output_pattern,
                       dtype=None,
                       silent=False,
                       compression=4,
-                      cores=multiprocessing.cpu_count()):
+                      cores=multiprocessing.cpu_count(),
+                      ignore_z_offsets=False):
     """Convert a terastitched volume to TIF
 
     :param xml_path: Path to terastitcher xml output file
@@ -28,8 +29,9 @@ def convert_to_2D_tif(xml_path, output_pattern,
     :param dtype: an optional numpy dtype, defaults to the dtype indicated
                   by the bit depth
     :param cores: # of processes to run simultaneously
+    :param ignore_z_offsets: True to ignore the Z offsets in the xml file
     """
-    v = TSVVolume.load(xml_path)
+    v = TSVVolume.load(xml_path, ignore_z_offsets)
     if volume is None:
         volume = v.volume
     if dtype is None:
@@ -122,7 +124,8 @@ def main():
                       volume=volume,
                       silent=args.silent,
                       compression=args.compression,
-                      cores=args.cpus)
+                      cores=args.cpus,
+                      ignore_z_offsets=args.ignore_z_offsets)
 
 
 def parse_args(parser:argparse.ArgumentParser):
@@ -164,6 +167,11 @@ def parse_args(parser:argparse.ArgumentParser):
         default=multiprocessing.cpu_count(),
         type=int,
         help="Number of CPUs to use for multiprocessing")
+    parser.add_argument(
+        "--ignore-z-offsets",
+        action="store_true",
+        help="Ignore any z offsets in the stitching XML file."
+    )
 
     args = parser.parse_args()
     if args.mipmap_level == 0:

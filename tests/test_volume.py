@@ -14,19 +14,23 @@ FN_PATTERN = "%08d.tif"
 
 
 @contextlib.contextmanager
-def make_case(constant_value = None, use_raw=False):
+def make_case(constant_value = None, use_raw=False, with_z_displacement=False):
     """Make a xml file and stacks for testing
 
     :param constant_value: make all pixels this value
     :param use_raw: if True, make a test case using .raw files.
+    :param with_z_displacement: if True, make a test case with a z-displacement
+    of 1 from east to west
     """
     tempdir = tempfile.mkdtemp()
     try:
         input_plugin = "raw" if use_raw else "tiff2D"
         xml_path = os.path.join(tempdir, "example.xml")
+        template = xml_template_with_z_displacement if with_z_displacement\
+            else xml_template
         with open(xml_path, "w") as fd:
-            fd.write(xml_template.format(tempdir=tempdir,
-                                         input_plugin=input_plugin))
+            fd.write(template.format(tempdir=tempdir,
+                                     input_plugin=input_plugin))
         r = np.random.RandomState(1234)
         subdirs = [["000000/000000_000000",
                     "000000/000000_001000"],
@@ -164,6 +168,22 @@ class TestTSVStack(unittest.TestCase):
                 self.assertEqual(s.x1, s.x0 + 1024)
                 self.assertEqual(s.y1, s.y0 + 1024)
                 self.assertEqual(s.dtype, stacks[0][0][0].dtype)
+
+    def test_z_offset(self):
+        with make_case(with_z_displacement=True) as ps:
+            xml_path, stacks = ps
+            v = volume.TSVVolume.load(xml_path)
+            self.assertEqual(v.stacks[0][1].z0, 1)
+            self.assertEqual(v.stacks[1][1].z0, 1)
+
+    def test_no_z_offset(self):
+        with make_case(with_z_displacement=True) as ps:
+            xml_path, stacks = ps
+            v = volume.TSVVolume.load(xml_path, ignore_z_offsets=True)
+            self.assertEqual(v.stacks[0][1].z0, 0)
+            self.assertEqual(v.stacks[1][1].z0, 0)
+
+
 
     def test_imread(self):
         with make_case() as ps:
@@ -650,6 +670,147 @@ xml_template = """<?xml version="1.0" encoding="UTF-8" ?>
                        nccPeak="0.885216" nccWidth="6" nccWRangeThr="25" 
                        nccInvWidth="26" delay="25" />
                     <D displ="0" default_displ="0" reliability="0.722427" 
+                       nccPeak="0.843184" nccWidth="11" nccWRangeThr="25" 
+                       nccInvWidth="26" delay="25" />
+                </Displacement>
+            </WEST_displacements>
+        </Stack>
+    </STACKS>
+</TeraStitcher>
+"""
+
+xml_template_with_z_displacement = """<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE TeraStitcher SYSTEM "TeraStitcher.DTD">
+<TeraStitcher volume_format="TiledXY|2Dseries" input_plugin="{input_plugin:s}">
+    <stacks_dir value="{tempdir:s}" />
+    <voxel_dims V="1.599" H="1.599" D="1" />
+    <origin V="17.156" H="11.126" D="10" />
+    <mechanical_displacements V="2783" H="2784" />
+    <dimensions stack_rows="2" stack_columns="2" stack_slices="2" />
+    <STACKS>
+        <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="0" COL="0" ABS_V="0" ABS_H="0" 
+               ABS_D="0" STITCHABLE="no" DIR_NAME="000000/000000_000000" 
+               Z_RANGES="[0,2)" IMG_REGEX="">
+            <NORTH_displacements />
+            <EAST_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="0" default_displ="0" reliability="0.787502"
+                     nccPeak="0.840414" nccWidth="7" nccWRangeThr="25" 
+                     nccInvWidth="26" delay="25" />
+                    <H displ="1000" default_displ="1741" reliability="0.829253" 
+                       nccPeak="0.885216" nccWidth="6" nccWRangeThr="25" 
+                       nccInvWidth="26" delay="25" />
+                    <D displ="-1" default_displ="0" reliability="0.722427" 
+                       nccPeak="0.843184" nccWidth="11" nccWRangeThr="25" 
+                       nccInvWidth="26" delay="25" />
+                </Displacement>
+            </EAST_displacements>
+            <SOUTH_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1000" default_displ="1741" reliability="0.875742"
+                       nccPeak="0.866778" nccWidth="3" nccWRangeThr="25" 
+                       nccInvWidth="26" delay="25" />
+                    <H displ="0" default_displ="0" reliability="0.879403"
+                       nccPeak="0.874159" nccWidth="3" nccWRangeThr="25"
+                        nccInvWidth="26" delay="25" />
+                    <D displ="0" default_displ="0" reliability="0.841427"
+                       nccPeak="0.9079" nccWidth="6" nccWRangeThr="25" \
+                       nccInvWidth="26" delay="25" />
+                </Displacement>
+            </SOUTH_displacements>
+            <WEST_displacements />
+        </Stack>
+        <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="0" COL="1" ABS_V="0" 
+               ABS_H="1000" ABS_D="0" STITCHABLE="no" 
+               DIR_NAME="000000/000000_001000" Z_RANGES="[0,2)" IMG_REGEX="">
+            <NORTH_displacements />
+            <EAST_displacements/>
+            <SOUTH_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="1000" default_displ="1741" reliability="0.875742"
+                       nccPeak="0.866778" nccWidth="3" nccWRangeThr="25" 
+                       nccInvWidth="26" delay="25" />
+                    <H displ="0" default_displ="0" reliability="0.879403"
+                       nccPeak="0.874159" nccWidth="3" nccWRangeThr="25"
+                        nccInvWidth="26" delay="25" />
+                    <D displ="0" default_displ="0" reliability="0.841427"
+                       nccPeak="0.9079" nccWidth="6" nccWRangeThr="25" \
+                       nccInvWidth="26" delay="25" />
+                </Displacement>
+            </SOUTH_displacements>
+            <WEST_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="0" default_displ="0" reliability="0.787502"
+                     nccPeak="0.840414" nccWidth="7" nccWRangeThr="25" 
+                     nccInvWidth="26" delay="25" />
+                    <H displ="-1000" default_displ="1741" reliability="0.829253" 
+                       nccPeak="0.885216" nccWidth="6" nccWRangeThr="25" 
+                       nccInvWidth="26" delay="25" />
+                    <D displ="1" default_displ="0" reliability="0.722427" 
+                       nccPeak="0.843184" nccWidth="11" nccWRangeThr="25" 
+                       nccInvWidth="26" delay="25" />
+                </Displacement>
+            </WEST_displacements>
+        </Stack>
+        <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="1" COL="0" ABS_V="1000" 
+               ABS_H="0" ABS_D="0" STITCHABLE="no" 
+               DIR_NAME="001000/001000_000000" Z_RANGES="[0,2)" IMG_REGEX="">
+            <NORTH_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1000" default_displ="1741" reliability="0.875742"
+                       nccPeak="0.866778" nccWidth="3" nccWRangeThr="25" 
+                       nccInvWidth="26" delay="25" />
+                    <H displ="0" default_displ="0" reliability="0.879403"
+                       nccPeak="0.874159" nccWidth="3" nccWRangeThr="25"
+                        nccInvWidth="26" delay="25" />
+                    <D displ="0" default_displ="0" reliability="0.841427"
+                       nccPeak="0.9079" nccWidth="6" nccWRangeThr="25" \
+                       nccInvWidth="26" delay="25" />
+                </Displacement>
+            </NORTH_displacements>
+            <EAST_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="0" default_displ="0" reliability="0.787502"
+                     nccPeak="0.840414" nccWidth="7" nccWRangeThr="25" 
+                     nccInvWidth="26" delay="25" />
+                    <H displ="1000" default_displ="1741" reliability="0.829253" 
+                       nccPeak="0.885216" nccWidth="6" nccWRangeThr="25" 
+                       nccInvWidth="26" delay="25" />
+                    <D displ="-1" default_displ="0" reliability="0.722427" 
+                       nccPeak="0.843184" nccWidth="11" nccWRangeThr="25" 
+                       nccInvWidth="26" delay="25" />
+                </Displacement>
+            </EAST_displacements>
+            <SOUTH_displacements/>
+            <WEST_displacements/>
+        </Stack>
+        <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="1" COL="1" ABS_V="1000"
+               ABS_H="1000" ABS_D="0" STITCHABLE="no"
+               DIR_NAME="001000/001000_001000" Z_RANGES="[0,2)" IMG_REGEX="">
+            <NORTH_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="-1000" default_displ="1741" reliability="0.875742"
+                       nccPeak="0.866778" nccWidth="3" nccWRangeThr="25" 
+                       nccInvWidth="26" delay="25" />
+                    <H displ="0" default_displ="0" reliability="0.879403"
+                       nccPeak="0.874159" nccWidth="3" nccWRangeThr="25"
+                        nccInvWidth="26" delay="25" />
+                    <D displ="0" default_displ="0" reliability="0.841427"
+                       nccPeak="0.9079" nccWidth="6" nccWRangeThr="25" \
+                       nccInvWidth="26" delay="25" />
+                </Displacement>
+            </NORTH_displacements>
+            <EAST_displacements/>
+            <SOUTH_displacements/>
+            <WEST_displacements>
+                <Displacement TYPE="MIP_NCC">
+                    <V displ="0" default_displ="0" reliability="0.787502"
+                     nccPeak="0.840414" nccWidth="7" nccWRangeThr="25" 
+                     nccInvWidth="26" delay="25" />
+                    <H displ="-1000" default_displ="1741" reliability="0.829253" 
+                       nccPeak="0.885216" nccWidth="6" nccWRangeThr="25" 
+                       nccInvWidth="26" delay="25" />
+                    <D displ="1" default_displ="0" reliability="0.722427" 
                        nccPeak="0.843184" nccWidth="11" nccWRangeThr="25" 
                        nccInvWidth="26" delay="25" />
                 </Displacement>
