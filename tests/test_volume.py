@@ -173,8 +173,10 @@ class TestTSVStack(unittest.TestCase):
         with make_case(with_z_displacement=True) as ps:
             xml_path, stacks = ps
             v = volume.TSVVolume.load(xml_path)
-            self.assertEqual(v.stacks[0][1].z0, 1)
-            self.assertEqual(v.stacks[1][1].z0, 1)
+            self.assertEqual(v.stacks[0][0].z0, 1)
+            self.assertEqual(v.stacks[1][0].z0, 1)
+            self.assertEqual(v.stacks[0][1].z0, 0)
+            self.assertEqual(v.stacks[1][1].z0, 0)
 
     def test_no_z_offset(self):
         with make_case(with_z_displacement=True) as ps:
