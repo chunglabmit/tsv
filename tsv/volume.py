@@ -334,7 +334,9 @@ class TSVSimpleStack(TSVStackBase):
                 self.__paths = sorted(self.root.glob("*.tif*"))
                 self.input_plugin = "tiff2D"
             self.z1slice = len(self.__paths)
-        return [os.fspath(_) for _ in self.__paths]
+        if getattr(os, "fspath", None) is not None:
+            return [os.fspath(_) for _ in self.__paths]
+        return [str(_) for _ in self.__paths]
 
 
 def compute_cosine(volume:VExtentBase, stack:TSVStack, ostack:TSVStack, img):
