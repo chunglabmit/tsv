@@ -252,7 +252,7 @@ class TestTSVSimpleStack(unittest.TestCase):
             for i, path in enumerate(s0.paths):
                 filename = FN_PATTERN % (i + 1)
                 expected = root / "000000" / "000000_000000" / filename
-                self.assertEqual(path, os.fspath(expected))
+                self.assertEqual(path, str(expected))
 
     def test_x1_y1_dtype(self):
         with make_case() as ps:
