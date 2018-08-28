@@ -9,6 +9,7 @@ else:
 import itertools
 import numpy as np
 import os
+import pathlib
 import re
 import tifffile
 from xml.etree import ElementTree
@@ -177,68 +178,11 @@ class VExtent(VExtentBase):
         return self._z1
 
 
-class TSVStack(VExtentBase):
-    def __init__(self, element, offset:Location, root_dir,
-                 ordering_pattern=None,
-                 input_plugin=None):
-        """Initialize a stack from a "Stack" element
-
-        :param element: an ElementTree element (with the "Stack" tag)
-        :param root_dir: the root directory of the directory hierarchy
-        :param ordering_pattern: how to find the image order # - an expression
-        that extracts a numeric z from the path name.
-        :param input_plugin: the input plugin that was used to read the files
-        in TeraStitcher
-        :param ignore_z_displacement: Set the Z displacement to zero, assuming
-        that the stage always returns to the same place.
-        """
-        self.root_dir = root_dir
-        self.n_chans = int(element.attrib["N_CHANS"])
-        self.bytes_per_chan = int(element.attrib["N_BYTESxCHAN"])
-        self.row = int(element.attrib["ROW"])
-        self.column = int(element.attrib["COL"])
-        self._x0 = offset.x
-        self._y0 = offset.y
-        self._z0 = offset.z
-        self.dir_name = element.attrib["DIR_NAME"]
-        self.input_plugin = input_plugin
-        z_ranges = element.attrib["Z_RANGES"]
-        z0, z1 = map(int, z_ranges[1:-1].split(","))
-        if z_ranges.startswith("["):
-            self.z0slice = z0
-        else:
-            self.z0slice = z0+1
-        if z_ranges.endswith(")"):
-            self.z1slice = z1
-        else:
-            self.z1slice = z1+1
-        self.img_regex = element.attrib["IMG_REGEX"]
-        if ordering_pattern is None:
-            ordering_pattern = "[^0-9]*(\\d+).*\\.raw" if input_plugin == "raw"\
-                               else "[^0-9]*(\\d+).*\\.tiff?"
-        self.ordering_pattern = ordering_pattern
-        self.__paths = None
+class TSVStackBase(VExtentBase):
+    def __init__(self):
         self.__x1 = None
         self.__y1 = None
         self.__dtype = None
-
-    @property
-    def paths(self):
-        """The paths to the individual slices"""
-        if self.__paths is None:
-            directory = os.path.join(self.root_dir, self.dir_name)
-            my_paths = []
-            for filename in sorted(os.listdir(directory)):
-                match = re.match(self.ordering_pattern, filename)
-                if not match:
-                    continue
-                ordering = int(match.groups()[0])
-                if self.img_regex != "":
-                    if not re.match(self.img_regex, filename):
-                        continue
-                my_paths.append((ordering, os.path.join(directory, filename)))
-            self.__paths = [_[1] for _ in sorted(my_paths)]
-        return self.__paths
 
     def __set_x1y1(self):
         if self.__x1 is None:
@@ -304,6 +248,93 @@ class TSVStack(VExtentBase):
                 plane[volume.y0 - self.y0:volume.y1 - self.y0,
                       volume.x0 - self.x0:volume.x1 - self.x0]
         return result
+
+
+class TSVStack(TSVStackBase):
+    def __init__(self, element, offset:Location, root_dir,
+                 ordering_pattern=None,
+                 input_plugin=None):
+        """Initialize a stack from a "Stack" element
+
+        :param element: an ElementTree element (with the "Stack" tag)
+        :param root_dir: the root directory of the directory hierarchy
+        :param ordering_pattern: how to find the image order # - an expression
+        that extracts a numeric z from the path name.
+        :param input_plugin: the input plugin that was used to read the files
+        in TeraStitcher
+        :param ignore_z_displacement: Set the Z displacement to zero, assuming
+        that the stage always returns to the same place.
+        """
+        TSVStackBase.__init__(self)
+        self.root_dir = root_dir
+        self.n_chans = int(element.attrib["N_CHANS"])
+        self.bytes_per_chan = int(element.attrib["N_BYTESxCHAN"])
+        self.row = int(element.attrib["ROW"])
+        self.column = int(element.attrib["COL"])
+        self._x0 = offset.x
+        self._y0 = offset.y
+        self._z0 = offset.z
+        self.dir_name = element.attrib["DIR_NAME"]
+        self.input_plugin = input_plugin
+        z_ranges = element.attrib["Z_RANGES"]
+        z0, z1 = map(int, z_ranges[1:-1].split(","))
+        if z_ranges.startswith("["):
+            self.z0slice = z0
+        else:
+            self.z0slice = z0+1
+        if z_ranges.endswith(")"):
+            self.z1slice = z1
+        else:
+            self.z1slice = z1+1
+        self.img_regex = element.attrib["IMG_REGEX"]
+        if ordering_pattern is None:
+            ordering_pattern = "[^0-9]*(\\d+).*\\.raw" if input_plugin == "raw"\
+                               else "[^0-9]*(\\d+).*\\.tiff?"
+        self.ordering_pattern = ordering_pattern
+        self.__paths = None
+
+    @property
+    def paths(self):
+        """The paths to the individual slices"""
+        if self.__paths is None:
+            directory = os.path.join(self.root_dir, self.dir_name)
+            my_paths = []
+            for filename in sorted(os.listdir(directory)):
+                match = re.match(self.ordering_pattern, filename)
+                if not match:
+                    continue
+                ordering = int(match.groups()[0])
+                if self.img_regex != "":
+                    if not re.match(self.img_regex, filename):
+                        continue
+                my_paths.append((ordering, os.path.join(directory, filename)))
+            self.__paths = [_[1] for _ in sorted(my_paths)]
+        return self.__paths
+
+
+class TSVSimpleStack(TSVStackBase):
+    def __init__(self, row, column, x0, y0, z0, root):
+        TSVStackBase.__init__(self)
+        self.row = row
+        self.column = column
+        self._x0 = x0
+        self._y0 = y0
+        self._z0 = z0
+        self.root = root
+        self.__paths = None
+        self.z0slice = 0
+
+    @property
+    def paths(self):
+        if self.__paths is None:
+            self.__paths = sorted(self.root.glob("*.raw"))
+            if len(self.__paths) > 0:
+                self.input_plugin = "raw"
+            else:
+                self.__paths = sorted(self.root.glob("*.tif*"))
+                self.input_plugin = "tiff2D"
+            self.z1slice = len(self.__paths)
+        return [os.fspath(_) for _ in self.__paths]
 
 
 def compute_cosine(volume:VExtentBase, stack:TSVStack, ostack:TSVStack, img):
@@ -421,104 +452,7 @@ def get_distance_from_edge(tgt:VExtentBase, stack:VExtentBase, ostack:VExtentBas
                           volume.end(idx) - tgt.end(idx), -1)[tuple(slices)])
     return result
 
-
-class TSVVolume:
-    def __init__(self, tree,
-                 ignore_z_offsets=False):
-        """Initialize from an xml.etree.ElementTree
-
-        :param tree: a tree, e.g. as loaded from ElementTree.parse(xml_path)
-        :param ignore_z_offsets: if True, ignore Z offsets (e.g. if the stage
-        always returns to the same Z coordinate repeatably)
-        """
-        self.ignore_z_offsets = ignore_z_offsets
-        root = tree.getroot()
-        assert root.tag == "TeraStitcher"
-        self.input_plugin = root.attrib["input_plugin"]
-        self.volume_format = root.attrib["volume_format"]
-        self.stacks_dir = root.find("stacks_dir").attrib["value"]
-        self.voxel_dims = get_dim_tuple(root.find("voxel_dims"))
-        self.origin = get_dim_tuple(root.find("origin"))
-        md = root.find("mechanical_displacements")
-        self.mechanical_displacement_x = float(md.attrib["H"])
-        self.mechanical_displacement_y = float(md.attrib["V"])
-        dims = root.find("dimensions")
-        self.stack_rows = int(dims.attrib["stack_rows"])
-        self.stack_columns = int(dims.attrib["stack_columns"])
-        self.stack_slices = int(dims.attrib["stack_slices"])
-        self.make_stacks(root)
-
-    def make_stacks(self, root):
-        """Parse and properly offset the stacks
-
-        :param root: the root node of the xml
-        """
-        stacks = root.find("STACKS")
-        selems = [[ None] * self.stack_columns for _ in range(self.stack_rows)]
-        self.stacks = [[ None] * self.stack_columns
-                       for _ in range(self.stack_rows)]
-        self.offsets = [[ None] * self.stack_columns
-                        for _ in range(self.stack_rows)]
-        self.offsets[0][0] = Location(0, 0, 0)
-        for child in stacks.getchildren():
-            if child.tag == "Stack":
-                row = int(child.attrib["ROW"])
-                column = int(child.attrib["COL"])
-                selems[row][column] = child
-        for row, elements in enumerate(selems):
-            for column, child in enumerate(elements):
-                if row > 0:
-                    prev = self.offsets[row-1][column]
-                    dn = child.find("NORTH_displacements").getchildren()[0]
-                    xoff = -int(dn.find("H").attrib["displ"])
-                    yoff = -int(dn.find("V").attrib["displ"])
-                    zoff = 0 if self.ignore_z_offsets \
-                                else -int(dn.find("D").attrib["displ"])
-                    offset = Location(prev.x + xoff,
-                                      prev.y + yoff,
-                                      prev.z + zoff)
-                    self.offsets[row][column] = offset
-                elif column > 0:
-                    prev = self.offsets[row][column-1]
-                    dn = child.find("WEST_displacements").getchildren()[0]
-                    xoff = -int(dn.find("H").attrib["displ"])
-                    yoff = -int(dn.find("V").attrib["displ"])
-                    zoff = 0 if self.ignore_z_offsets \
-                            else -int(dn.find("D").attrib["displ"])
-                    offset = Location(prev.x + xoff,
-                                      prev.y + yoff,
-                                      prev.z + zoff)
-                    self.offsets[row][column] = offset
-        #
-        # Find the minimum absolute offset for x, y, z
-        #
-        min_x = min_y = min_z = np.iinfo(np.uint32).max
-        for offset in sum(self.offsets, []):
-            min_x = min(min_x, offset.x)
-            min_y = min(min_y, offset.y)
-            min_z = min(min_z, offset.z)
-        #
-        # Rebase the offsets so that coordinates are all positive and start
-        # at zero
-        #
-        for row, column in itertools.product(range(self.stack_rows),
-                                             range(self.stack_columns)):
-            offset = self.offsets[row][column]
-            offset = Location(offset.x - min_x,
-                              offset.y - min_y,
-                              offset.z - min_z)
-            self.offsets[row][column] = offset
-            self.stacks[row][column] = TSVStack(selems[row][column],
-                                                offset,
-                                                self.stacks_dir,
-                                                input_plugin=self.input_plugin)
-
-
-    @staticmethod
-    def load(path, ignore_z_offsets = False):
-        """Load a volume from an XML file"""
-        tree = ElementTree.parse(path)
-        return TSVVolume(tree, ignore_z_offsets)
+class TSVVolumeBase:
 
     def flattened_stacks(self):
         """Return the stacks in row-major order
@@ -608,6 +542,100 @@ class TSVVolume:
             z1 = max(z1, stack.z1)
         return VExtent(x0, x1, y0, y1, z0, z1)
 
+
+class TSVVolume(TSVVolumeBase):
+    def __init__(self, tree,
+                 ignore_z_offsets=False):
+        """Initialize from an xml.etree.ElementTree
+
+        :param tree: a tree, e.g. as loaded from ElementTree.parse(xml_path)
+        :param ignore_z_offsets: if True, ignore Z offsets (e.g. if the stage
+        always returns to the same Z coordinate repeatably)
+        """
+        self.ignore_z_offsets = ignore_z_offsets
+        root = tree.getroot()
+        assert root.tag == "TeraStitcher"
+        self.voxel_dims = get_dim_tuple(root.find("voxel_dims"))
+        dims = root.find("dimensions")
+        self.stack_rows = int(dims.attrib["stack_rows"])
+        self.origin = get_dim_tuple(root.find("origin"))
+        self.stack_columns = int(dims.attrib["stack_columns"])
+        self.stacks = [[ None] * self.stack_columns
+                       for _ in range(self.stack_rows)]
+        self.input_plugin = root.attrib["input_plugin"]
+        self.volume_format = root.attrib["volume_format"]
+        self.stacks_dir = root.find("stacks_dir").attrib["value"]
+        md = root.find("mechanical_displacements")
+        self.mechanical_displacement_x = float(md.attrib["H"])
+        self.mechanical_displacement_y = float(md.attrib["V"])
+        self.stack_slices = int(dims.attrib["stack_slices"])
+        self.make_stacks(root)
+
+    def make_stacks(self, root):
+        """Parse and properly offset the stacks
+
+        :param root: the root node of the xml
+        """
+        stacks = root.find("STACKS")
+        selems = [[ None] * self.stack_columns for _ in range(self.stack_rows)]
+        self.stacks = [[ None] * self.stack_columns
+                       for _ in range(self.stack_rows)]
+        self.offsets = [[ None] * self.stack_columns
+                        for _ in range(self.stack_rows)]
+        self.offsets[0][0] = Location(0, 0, 0)
+        for child in stacks.getchildren():
+            if child.tag == "Stack":
+                row = int(child.attrib["ROW"])
+                column = int(child.attrib["COL"])
+                selems[row][column] = child
+        for row, elements in enumerate(selems):
+            for column, child in enumerate(elements):
+                if row > 0:
+                    prev = self.offsets[row-1][column]
+                    dn = child.find("NORTH_displacements").getchildren()[0]
+                    xoff = -int(dn.find("H").attrib["displ"])
+                    yoff = -int(dn.find("V").attrib["displ"])
+                    zoff = 0 if self.ignore_z_offsets \
+                                else -int(dn.find("D").attrib["displ"])
+                    offset = Location(prev.x + xoff,
+                                      prev.y + yoff,
+                                      prev.z + zoff)
+                    self.offsets[row][column] = offset
+                elif column > 0:
+                    prev = self.offsets[row][column-1]
+                    dn = child.find("WEST_displacements").getchildren()[0]
+                    xoff = -int(dn.find("H").attrib["displ"])
+                    yoff = -int(dn.find("V").attrib["displ"])
+                    zoff = 0 if self.ignore_z_offsets \
+                            else -int(dn.find("D").attrib["displ"])
+                    offset = Location(prev.x + xoff,
+                                      prev.y + yoff,
+                                      prev.z + zoff)
+                    self.offsets[row][column] = offset
+        #
+        # Find the minimum absolute offset for x, y, z
+        #
+        min_x = min_y = min_z = np.iinfo(np.uint32).max
+        for offset in sum(self.offsets, []):
+            min_x = min(min_x, offset.x)
+            min_y = min(min_y, offset.y)
+            min_z = min(min_z, offset.z)
+        #
+        # Rebase the offsets so that coordinates are all positive and start
+        # at zero
+        #
+        for row, column in itertools.product(range(self.stack_rows),
+                                             range(self.stack_columns)):
+            offset = self.offsets[row][column]
+            offset = Location(offset.x - min_x,
+                              offset.y - min_y,
+                              offset.z - min_z)
+            self.offsets[row][column] = offset
+            self.stacks[row][column] = TSVStack(selems[row][column],
+                                                offset,
+                                                self.stacks_dir,
+                                                input_plugin=self.input_plugin)
+
     @property
     def dtype(self):
         """The dtype inferred from the stack's bit-depth"""
@@ -617,3 +645,65 @@ class TSVVolume:
             return np.uint16
         else:
             return np.uint32
+
+    @staticmethod
+    def load(path, ignore_z_offsets = False):
+        """Load a volume from an XML file"""
+        tree = ElementTree.parse(path)
+        return TSVVolume(tree, ignore_z_offsets)
+
+
+class TSVSimpleVolume(TSVVolumeBase):
+    """A volume created from a directory parse + voxel size
+
+
+    """
+    def __init__(self, root_dir, voxel_size_xy, voxel_size_z):
+        """
+
+        :param root_dir: The root directory of the directory tree. It should
+        be laid out as <root_dir>/<x-location-in-tenths-of-microns>/
+        <x-location-in-tenths-of-microns>_<y-location-in-tenths-of-microns>
+        :param voxel_size_xy: The size of a voxel in the x and y directions
+        :param voxel_size_z: The size of a voxel in the Z direction
+        """
+        self.voxel_dims = (voxel_size_xy, voxel_size_xy, voxel_size_z)
+        root_path = pathlib.Path(root_dir)
+        xdirs = sorted([_ for _ in root_path.glob("*")
+                        if _.is_dir() and re.match("[0-9]+", _.name)])
+        ydirs = [sorted([__ for __ in _.glob("*")
+                  if __.is_dir() and re.match("[0-9]+_[0-9]+", __.name)])
+                 for _ in xdirs]
+        self.stack_rows = len(ydirs[0])
+        self.stack_columns = len(ydirs)
+        self.stacks = [[ None] * self.stack_columns
+                       for _ in range(self.stack_rows)]
+        self.offsets = [[None] * self.stack_columns
+                        for _ in range(self.stack_rows)]
+        self.stacks_dir = root_dir
+        self.stack_slices = len(list(ydirs[0][0].glob("*.raw")))
+        if self.stack_slices == 0:
+            self.stack_slices = len(list(ydirs[0][0].glob("*.tif*")))
+        #
+        # Make the offsets and the stacks
+        #
+        for xi, yd in enumerate(ydirs):
+            for yi, ydir in enumerate(yd):
+                x, y = [int(_) for _ in ydir.name.split("_")]
+                if xi == 0:
+                    xloc = 0
+                    x0 = x
+                else:
+                    xloc = int((x - x0) / voxel_size_xy / 10.0)
+                if yi == 0:
+                    yloc = 0
+                    y0 = y
+                else:
+                    yloc = int((y - y0) / voxel_size_xy / 10.0)
+                self.offsets[yi][xi] = (xloc, yloc, 0)
+                self.stacks[yi][xi] = \
+                    TSVSimpleStack(yi, xi, xloc, yloc, 0, ydir)
+
+    @property
+    def dtype(self):
+        return np.uint16

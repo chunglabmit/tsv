@@ -1,6 +1,7 @@
 import contextlib
 import numpy as np
 import os
+import pathlib
 import shutil
 import tempfile
 import tifffile
@@ -33,9 +34,9 @@ def make_case(constant_value = None, use_raw=False, with_z_displacement=False):
                                      input_plugin=input_plugin))
         r = np.random.RandomState(1234)
         subdirs = [["000000/000000_000000",
-                    "000000/000000_001000"],
-                   ["001000/001000_000000",
-                    "001000/001000_001000"]]
+                    "000000/000000_018000"],
+                   ["018000/018000_000000",
+                    "018000/018000_018000"]]
         if constant_value is None:
             stacks = [[
                 [r.randint(0, 65535, (1024, 1024), np.uint16) for _ in range(2)]
@@ -223,6 +224,76 @@ class TestTSVStack(unittest.TestCase):
             img = np.zeros(e.shape)
             v.stacks[0][0].imread(e, img)
             np.testing.assert_equal(img[0], stacks[0][0][1][11:21, :10])
+
+
+class TestTSVSimpleStack(unittest.TestCase):
+
+    def test_init(self):
+        with make_case() as ps:
+            xml_path, stacks = ps
+            root = pathlib.Path(xml_path).parent
+            v = volume.TSVSimpleVolume(root, 1.8, 1.8)
+            s1 = v.stacks[0][1]
+            self.assertIsInstance(s1, volume.TSVSimpleStack)
+            self.assertEqual(
+                s1.root, root / "018000" / "018000_000000")
+            self.assertEqual(s1.column, 1)
+            self.assertEqual(s1.row, 0)
+            self.assertAlmostEqual(s1.x0, 1000)
+            self.assertEqual(s1.y0, 0)
+            self.assertEqual(s1.z0, 0)
+
+    def test_paths(self):
+        with make_case() as ps:
+            xml_path, stacks = ps
+            root = pathlib.Path(xml_path).parent
+            v = volume.TSVSimpleVolume(root, 1.8, 1.8)
+            s0 = v.stacks[0][0]
+            for i, path in enumerate(s0.paths):
+                filename = FN_PATTERN % (i + 1)
+                expected = root / "000000" / "000000_000000" / filename
+                self.assertEqual(path, os.fspath(expected))
+
+    def test_x1_y1_dtype(self):
+        with make_case() as ps:
+            xml_path, stacks = ps
+            root = pathlib.Path(xml_path).parent
+            v = volume.TSVSimpleVolume(root, 1.8, 1.8)
+            for s in sum(v.stacks, []):
+                self.assertEqual(s.x1, s.x0 + 1024)
+                self.assertEqual(s.y1, s.y0 + 1024)
+                self.assertEqual(s.dtype, stacks[0][0][0].dtype)
+
+    def test_imread(self):
+        with make_case() as ps:
+            xml_path, stacks = ps
+            root = pathlib.Path(xml_path).parent
+            v = volume.TSVSimpleVolume(root, 1.8, 1.8)
+            e = volume.VExtent(0, 10, 11, 21, 0, 2)
+            img = v.stacks[0][0].imread(e)
+            np.testing.assert_equal(img[0], stacks[0][0][0][11:21, :10])
+            np.testing.assert_equal(img[1], stacks[0][0][1][11:21, :10])
+
+    def test_imread_raw(self):
+        with make_case(use_raw=True) as ps:
+            xml_path, stacks = ps
+            root = pathlib.Path(xml_path).parent
+            v = volume.TSVSimpleVolume(root, 1.8, 1.8)
+            e = volume.VExtent(0, 10, 11, 21, 0, 2)
+            img = v.stacks[0][0].imread(e)
+            np.testing.assert_equal(img[0], stacks[0][0][0][11:21, :10])
+            np.testing.assert_equal(img[1], stacks[0][0][1][11:21, :10])
+
+    def test_imread_inplace(self):
+        with make_case() as ps:
+            xml_path, stacks = ps
+            root = pathlib.Path(xml_path).parent
+            v = volume.TSVSimpleVolume(root, 1.8, 1.8)
+            e = volume.VExtent(0, 10, 11, 21, 0, 2)
+            img = np.zeros(e.shape)
+            v.stacks[0][0].imread(e, img)
+            np.testing.assert_equal(img[0], stacks[0][0][0][11:21, :10])
+            np.testing.assert_equal(img[1], stacks[0][0][1][11:21, :10])
 
 
 class TestComputeCosine(unittest.TestCase):
@@ -583,7 +654,7 @@ xml_template = """<?xml version="1.0" encoding="UTF-8" ?>
         </Stack>
         <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="0" COL="1" ABS_V="0" 
                ABS_H="1000" ABS_D="0" STITCHABLE="no" 
-               DIR_NAME="000000/000000_001000" Z_RANGES="[0,2)" IMG_REGEX="">
+               DIR_NAME="000000/000000_018000" Z_RANGES="[0,2)" IMG_REGEX="">
             <NORTH_displacements />
             <EAST_displacements/>
             <SOUTH_displacements>
@@ -615,7 +686,7 @@ xml_template = """<?xml version="1.0" encoding="UTF-8" ?>
         </Stack>
         <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="1" COL="0" ABS_V="1000" 
                ABS_H="0" ABS_D="0" STITCHABLE="no" 
-               DIR_NAME="001000/001000_000000" Z_RANGES="[0,2)" IMG_REGEX="">
+               DIR_NAME="018000/018000_000000" Z_RANGES="[0,2)" IMG_REGEX="">
             <NORTH_displacements>
                 <Displacement TYPE="MIP_NCC">
                     <V displ="-1000" default_displ="1741" reliability="0.875742"
@@ -647,7 +718,7 @@ xml_template = """<?xml version="1.0" encoding="UTF-8" ?>
         </Stack>
         <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="1" COL="1" ABS_V="1000"
                ABS_H="1000" ABS_D="0" STITCHABLE="no"
-               DIR_NAME="001000/001000_001000" Z_RANGES="[0,2)" IMG_REGEX="">
+               DIR_NAME="018000/018000_018000" Z_RANGES="[0,2)" IMG_REGEX="">
             <NORTH_displacements>
                 <Displacement TYPE="MIP_NCC">
                     <V displ="-1000" default_displ="1741" reliability="0.875742"
@@ -724,7 +795,7 @@ xml_template_with_z_displacement = """<?xml version="1.0" encoding="UTF-8" ?>
         </Stack>
         <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="0" COL="1" ABS_V="0" 
                ABS_H="1000" ABS_D="0" STITCHABLE="no" 
-               DIR_NAME="000000/000000_001000" Z_RANGES="[0,2)" IMG_REGEX="">
+               DIR_NAME="000000/000000_018000" Z_RANGES="[0,2)" IMG_REGEX="">
             <NORTH_displacements />
             <EAST_displacements/>
             <SOUTH_displacements>
@@ -756,7 +827,7 @@ xml_template_with_z_displacement = """<?xml version="1.0" encoding="UTF-8" ?>
         </Stack>
         <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="1" COL="0" ABS_V="1000" 
                ABS_H="0" ABS_D="0" STITCHABLE="no" 
-               DIR_NAME="001000/001000_000000" Z_RANGES="[0,2)" IMG_REGEX="">
+               DIR_NAME="018000/001800_000000" Z_RANGES="[0,2)" IMG_REGEX="">
             <NORTH_displacements>
                 <Displacement TYPE="MIP_NCC">
                     <V displ="-1000" default_displ="1741" reliability="0.875742"
@@ -788,7 +859,7 @@ xml_template_with_z_displacement = """<?xml version="1.0" encoding="UTF-8" ?>
         </Stack>
         <Stack N_CHANS="1" N_BYTESxCHAN="2" ROW="1" COL="1" ABS_V="1000"
                ABS_H="1000" ABS_D="0" STITCHABLE="no"
-               DIR_NAME="001000/001000_001000" Z_RANGES="[0,2)" IMG_REGEX="">
+               DIR_NAME="018000/018000_018000" Z_RANGES="[0,2)" IMG_REGEX="">
             <NORTH_displacements>
                 <Displacement TYPE="MIP_NCC">
                     <V displ="-1000" default_displ="1741" reliability="0.875742"

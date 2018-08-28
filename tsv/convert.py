@@ -9,7 +9,7 @@ from .volume import VExtent, TSVVolume
 import tqdm
 
 
-def convert_to_2D_tif(xml_path, output_pattern,
+def convert_to_2D_tif(v, output_pattern,
                       mipmap_level=None,
                       volume=None,
                       dtype=None,
@@ -19,7 +19,7 @@ def convert_to_2D_tif(xml_path, output_pattern,
                       ignore_z_offsets=False):
     """Convert a terastitched volume to TIF
 
-    :param xml_path: Path to terastitcher xml output file
+    :param v: the volume to convert
     :param output_pattern: File naming pattern. output_pattern.format(z=z) is
          called to get the path names for each TIF plane. The directory must
          already exist.
@@ -31,7 +31,6 @@ def convert_to_2D_tif(xml_path, output_pattern,
     :param cores: # of processes to run simultaneously
     :param ignore_z_offsets: True to ignore the Z offsets in the xml file
     """
-    v = TSVVolume.load(xml_path, ignore_z_offsets)
     if volume is None:
         volume = v.volume
     if dtype is None:
@@ -118,7 +117,9 @@ def main():
         description="Make a z-stack out of a Terastitcher volume"
     )
     args, mipmap_level, volume = parse_args(parser)
-    convert_to_2D_tif(args.xml_path,
+    v = TSVVolume.load(args.xml_path, args.ignore_z_offsets)
+
+    convert_to_2D_tif(v,
                       args.output_pattern,
                       mipmap_level=mipmap_level,
                       volume=volume,
