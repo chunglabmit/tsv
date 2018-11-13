@@ -30,7 +30,8 @@ setup(
         "tsv-convert-2D-tif=tsv.convert:main",
         "tsv-simple-convert-2d-tif=tsv.simple:main",
         "tsv-diag-stack=tsv.convert:diag",
-        "tsv-renumber=tsv.renumber:main"
+        "tsv-renumber=tsv.renumber:main",
+        "tsv-renumber-directories=tsv.renumber_directories:main"
     ]},
     url="https://github.com/chunglabmit/tsv",
     license="MIT",
