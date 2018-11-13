@@ -77,3 +77,9 @@ disk savings.
 * **--silent**: disables the progress bar
 * **--cpus**: the number of CPUs to use to process the images. The default
 is all of the computer's CPUs.
+
+**tsv-renumber-directories**: potentially renumber Smart Spim output directories
+so that none have negative offsets.
+
+Arguments:
+* **--path**: the path to the root directory.
