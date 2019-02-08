@@ -547,11 +547,14 @@ class TSVVolumeBase:
 
 class TSVVolume(TSVVolumeBase):
     def __init__(self, tree,
-                 ignore_z_offsets=False):
+                 ignore_z_offsets=False,
+                 alt_stack_dir=None):
         """Initialize from an xml.etree.ElementTree
 
         :param tree: a tree, e.g. as loaded from ElementTree.parse(xml_path)
         :param ignore_z_offsets: if True, ignore Z offsets (e.g. if the stage
+        :param alt_stack_dir: alternative directory of stacks for another
+        channel
         always returns to the same Z coordinate repeatably)
         """
         self.ignore_z_offsets = ignore_z_offsets
@@ -566,7 +569,10 @@ class TSVVolume(TSVVolumeBase):
                        for _ in range(self.stack_rows)]
         self.input_plugin = root.attrib["input_plugin"]
         self.volume_format = root.attrib["volume_format"]
-        self.stacks_dir = root.find("stacks_dir").attrib["value"]
+        if alt_stack_dir is None:
+            self.stacks_dir = root.find("stacks_dir").attrib["value"]
+        else:
+            self.stacks_dir = alt_stack_dir
         md = root.find("mechanical_displacements")
         self.mechanical_displacement_x = float(md.attrib["H"])
         self.mechanical_displacement_y = float(md.attrib["V"])
@@ -649,10 +655,10 @@ class TSVVolume(TSVVolumeBase):
             return np.uint32
 
     @staticmethod
-    def load(path, ignore_z_offsets = False):
+    def load(path, ignore_z_offsets = False, alt_stacks_dir=None):
         """Load a volume from an XML file"""
         tree = ElementTree.parse(path)
-        return TSVVolume(tree, ignore_z_offsets)
+        return TSVVolume(tree, ignore_z_offsets, alt_stacks_dir)
 
 
 class TSVSimpleVolume(TSVVolumeBase):

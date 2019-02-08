@@ -117,7 +117,7 @@ def main():
         description="Make a z-stack out of a Terastitcher volume"
     )
     args, mipmap_level, volume = parse_args(parser)
-    v = TSVVolume.load(args.xml_path, args.ignore_z_offsets)
+    v = TSVVolume.load(args.xml_path, args.ignore_z_offsets, args.input)
 
     convert_to_2D_tif(v,
                       args.output_pattern,
@@ -172,6 +172,11 @@ def parse_args(parser:argparse.ArgumentParser):
         "--ignore-z-offsets",
         action="store_true",
         help="Ignore any z offsets in the stitching XML file."
+    )
+    parser.add_argument(
+        "--input",
+        help="Optional input location for unstitched stacks. Default is to "
+        "use the value encoded in the --xml-path file"
     )
 
     args = parser.parse_args()
