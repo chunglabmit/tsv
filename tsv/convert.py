@@ -59,6 +59,9 @@ def convert_one_plane(v, compression, decimation, dtype,
     if decimation > 1:
         plane = plane[::decimation, ::decimation]
     path = output_pattern.format(z=z)
+    dir_path = os.path.dirname(path)
+    if not os.path.exists(dir_path):
+        os.mkdirs(dir_path, exist_ok=True)
     tifffile.imsave(path, plane, compress=compression)
 
 
