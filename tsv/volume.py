@@ -186,6 +186,10 @@ class TSVStackBase(VExtentBase):
 
     def __set_x1y1(self):
         if self.__x1 is None:
+            if len(self.paths) == 0:
+                self.__x1 = self.x0
+                self.__y1 = self.y0
+                return
             img = self.read_plane(self.paths[0])
             self.__dtype = img.dtype
             height, width = img.shape[-2:]
@@ -277,15 +281,18 @@ class TSVStack(TSVStackBase):
         self.dir_name = element.attrib["DIR_NAME"]
         self.input_plugin = input_plugin
         z_ranges = element.attrib["Z_RANGES"]
-        z0, z1 = map(int, z_ranges[1:-1].split(","))
-        if z_ranges.startswith("["):
-            self.z0slice = z0
+        if len(z_ranges) == 0:
+            z0 = z1 = self.z0slice = self.z1slice = 0
         else:
-            self.z0slice = z0+1
-        if z_ranges.endswith(")"):
-            self.z1slice = z1
-        else:
-            self.z1slice = z1+1
+            z0, z1 = map(int, z_ranges[1:-1].split(","))
+            if z_ranges.startswith("["):
+                self.z0slice = z0
+            else:
+                self.z0slice = z0+1
+            if z_ranges.endswith(")"):
+                self.z1slice = z1
+            else:
+                self.z1slice = z1+1
         self.img_regex = element.attrib["IMG_REGEX"]
         if ordering_pattern is None:
             ordering_pattern = "[^0-9]*(\\d+).*\\.raw" if input_plugin == "raw"\
