@@ -7,6 +7,7 @@ import tempfile
 import tifffile
 import unittest
 from tsv import volume
+from tsv.convert import main
 from tsv.raw import raw_imsave
 
 xml_path = os.path.join(os.path.dirname(__file__), "example.xml")
@@ -597,7 +598,6 @@ class TestTSVVolume(unittest.TestCase):
                 np.testing.assert_equal(img[z, :, :, 3],
                                         stacks[1][1][z][:24, :24])
 
-
     def test_volume(self):
         with make_case() as ps:
             xml_path, stacks = ps
@@ -605,9 +605,73 @@ class TestTSVVolume(unittest.TestCase):
             e = v.volume
             self.assertEqual(e.x0, 0)
             self.assertEqual(e.x1, 2024)
-            self.assertEqual(e.y0, 0, 2024)
+            self.assertEqual(e.y0, 0)
+            self.assertEqual(e.y1, 2024)
             self.assertEqual(e.z0, 0)
             self.assertEqual(e.z1, 2)
+
+    def test_main(self):
+        with make_case() as (xml_path, stacks):
+            dest = tempfile.mkdtemp()
+            pattern = os.path.join(dest, "img_{z:04d}.tiff")
+            file0 = pattern.format(z=0)
+            file1 = pattern.format(z=1)
+            main(["--xml-path", xml_path,
+                  "--output-pattern", pattern])
+            img0 = tifffile.imread(file0)
+            self.assertSequenceEqual(img0.shape, (2024, 2024))
+            self.assertEqual(img0[-1, -1], stacks[-1][-1][0][-1, -1])
+            img1 = tifffile.imread(file1)
+            self.assertSequenceEqual(img1.shape, (2024, 2024))
+            os.remove(file0)
+            os.remove(file1)
+            os.rmdir(dest)
+
+    def test_rot90(self):
+        with make_case() as (xml_path, stacks):
+            dest = tempfile.mkdtemp()
+            pattern = os.path.join(dest, "img_{z:04d}.tiff")
+            file0 = pattern.format(z=0)
+            file1 = pattern.format(z=1)
+            main(["--xml-path", xml_path,
+                  "--output-pattern", pattern,
+                  "--rotation", "90"])
+            img0 = tifffile.imread(file0)
+            self.assertEqual(img0[0, -1], stacks[-1][-1][0][-1, -1])
+            os.remove(file0)
+            os.remove(file1)
+            os.rmdir(dest)
+
+    def test_rot180(self):
+        with make_case() as (xml_path, stacks):
+            dest = tempfile.mkdtemp()
+            pattern = os.path.join(dest, "img_{z:04d}.tiff")
+            file0 = pattern.format(z=0)
+            file1 = pattern.format(z=1)
+            main(["--xml-path", xml_path,
+                  "--output-pattern", pattern,
+                  "--rotation", "180"])
+            img0 = tifffile.imread(file0)
+            self.assertEqual(img0[0, 0], stacks[-1][-1][0][-1, -1])
+            os.remove(file0)
+            os.remove(file1)
+            os.rmdir(dest)
+
+    def test_rot270(self):
+        with make_case() as (xml_path, stacks):
+            dest = tempfile.mkdtemp()
+            pattern = os.path.join(dest, "img_{z:04d}.tiff")
+            file0 = pattern.format(z=0)
+            file1 = pattern.format(z=1)
+            main(["--xml-path", xml_path,
+                  "--output-pattern", pattern,
+                  "--rotation", "270"])
+            img0 = tifffile.imread(file0)
+            self.assertEqual(img0[-1, 0], stacks[-1][-1][0][-1, -1])
+            os.remove(file0)
+            os.remove(file1)
+            os.rmdir(dest)
+
 
 """The XML template consists of four stacks which overlap by 24 voxels
 """

@@ -6,6 +6,7 @@ import numpy as np
 import os
 import tifffile
 from .volume import VExtent, TSVVolume
+import sys
 import tqdm
 
 
@@ -16,7 +17,8 @@ def convert_to_2D_tif(v, output_pattern,
                       silent=False,
                       compression=4,
                       cores=multiprocessing.cpu_count(),
-                      ignore_z_offsets=False):
+                      ignore_z_offsets=False,
+                      rotation=0):
     """Convert a terastitched volume to TIF
 
     :param v: the volume to convert
@@ -30,6 +32,7 @@ def convert_to_2D_tif(v, output_pattern,
                   by the bit depth
     :param cores: # of processes to run simultaneously
     :param ignore_z_offsets: True to ignore the Z offsets in the xml file
+    :param rotation: Rotate image by 0, 90, 180, or 270 degrees
     """
     if volume is None:
         volume = v.volume
@@ -45,13 +48,13 @@ def convert_to_2D_tif(v, output_pattern,
             futures.append(pool.apply_async(
                 convert_one_plane,
                 (v, compression, decimation, dtype, output_pattern,
-                 volume, z)))
+                 volume, z, rotation)))
         for future in tqdm.tqdm(futures):
             future.get()
 
 
 def convert_one_plane(v, compression, decimation, dtype,
-                      output_pattern, volume, z):
+                      output_pattern, volume, z, rotation):
 
     mini_volume = VExtent(
         volume.x0, volume.x1, volume.y0, volume.y1, z, z + 1)
@@ -62,6 +65,12 @@ def convert_one_plane(v, compression, decimation, dtype,
     dir_path = os.path.dirname(path)
     if not os.path.exists(dir_path):
         os.makedirs(dir_path, exist_ok=True)
+    if rotation == 90:
+        plane = np.rot90(plane, 1)
+    elif rotation == 180:
+        plane = np.rot90(plane, 2)
+    elif rotation == 270:
+        plane = np.rot90(plane, 3)
     tifffile.imsave(path, plane, compress=compression)
 
 
@@ -115,11 +124,11 @@ def make_diag_plane(v, compression, decimation, dtype, mipmap_level, output_patt
     tifffile.imsave(path, plane, compress=compression, photometric="rgb")
 
 
-def main():
+def main(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(
         description="Make a z-stack out of a Terastitcher volume"
     )
-    args, mipmap_level, volume = parse_args(parser)
+    args, mipmap_level, volume = parse_args(parser, args)
     v = TSVVolume.load(args.xml_path, args.ignore_z_offsets, args.input)
 
     convert_to_2D_tif(v,
@@ -129,10 +138,11 @@ def main():
                       silent=args.silent,
                       compression=args.compression,
                       cores=args.cpus,
-                      ignore_z_offsets=args.ignore_z_offsets)
+                      ignore_z_offsets=args.ignore_z_offsets,
+                      rotation=args.rotation)
 
 
-def parse_args(parser:argparse.ArgumentParser):
+def parse_args(parser:argparse.ArgumentParser, args=sys.argv[1:]):
     """Standardized argument parser for convert functions
 
     :param parser: an argument parser, possibly configured for the application
@@ -181,8 +191,15 @@ def parse_args(parser:argparse.ArgumentParser):
         help="Optional input location for unstitched stacks. Default is to "
         "use the value encoded in the --xml-path file"
     )
+    parser.add_argument(
+        "--rotation",
+        type=int,
+        default=0,
+        help="Rotate each plane by the given number of degrees. Only 0, 90, "
+             "180 and 270 are supported"
+    )
 
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     if args.mipmap_level == 0:
         mipmap_level = None
     else:
