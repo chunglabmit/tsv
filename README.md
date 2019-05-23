@@ -83,3 +83,12 @@ so that none have negative offsets.
 
 Arguments:
 * **--path**: the path to the root directory.
+
+**tsv-fill-blanks**: potentially write missing planes in a stack matrix. Given
+a stack matrix of x coordinates and y coordinates and z planes,
+create a file of all zeros at every x, y, z where a file is missing.
+
+Arguments:
+* **--src**: the source directory, typically the raw images
+* **--dest**: the destination directory, typically, the destriped
+images. Defaults to the destriped image directory.
