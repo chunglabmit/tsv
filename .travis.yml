@@ -13,5 +13,5 @@ script:
    - tsv-renumber --help
    - tsv-renumber-directories --help
    - tsv-fill-blanks --help
-   - tsv-download --help
+   - tsv-downsample --help
 sudo: false
