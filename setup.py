@@ -8,6 +8,7 @@ with open("./README.md") as fd:
 install_requires = [
         "numpy",
         "h5py",
+        "scikit-image",
         "tifffile",
         "tqdm"
     ]
@@ -32,7 +33,8 @@ setup(
         "tsv-diag-stack=tsv.convert:diag",
         "tsv-renumber=tsv.renumber:main",
         "tsv-renumber-directories=tsv.renumber_directories:main",
-        "tsv-fill-blanks=tsv.fill_blanks:main"
+        "tsv-fill-blanks=tsv.fill_blanks:main",
+        "tsv-downsample=tsv.downsample:main"
     ]},
     url="https://github.com/chunglabmit/tsv",
     license="MIT",
