@@ -28,7 +28,7 @@ setup(
     author="Kwanghun Chung Lab",
     packages=["tsv"],
     entry_points={ 'console_scripts': [
-        "tsv-convert-2D-tif=tsv.convert:main",
+        "tsv-convert-2d-tif=tsv.convert:main",
         "tsv-simple-convert-2d-tif=tsv.simple:main",
         "tsv-diag-stack=tsv.convert:diag",
         "tsv-renumber=tsv.renumber:main",

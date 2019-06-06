@@ -8,9 +8,10 @@ install:
 script:
    - pip install --editable .
    - nosetests tests
-   - tsv-convert-2D-tif --help
+   - tsv-convert-2d-tif --help
    - tsv-simple-convert-2d-tif --help
    - tsv-renumber --help
    - tsv-renumber-directories --help
    - tsv-fill-blanks --help
+   - tsv-download --help
 sudo: false
