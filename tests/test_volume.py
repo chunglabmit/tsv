@@ -9,6 +9,7 @@ import unittest
 from tsv import volume
 from tsv.convert import main
 from tsv.raw import raw_imsave
+import xml.etree.ElementTree as ET
 
 xml_path = os.path.join(os.path.dirname(__file__), "example.xml")
 
@@ -16,13 +17,18 @@ FN_PATTERN = "%08d.tif"
 
 
 @contextlib.contextmanager
-def make_case(constant_value = None, use_raw=False, with_z_displacement=False):
+def make_case(constant_value = None,
+              use_raw=False,
+              with_z_displacement=False,
+              ranges=None):
     """Make a xml file and stacks for testing
 
     :param constant_value: make all pixels this value
     :param use_raw: if True, make a test case using .raw files.
     :param with_z_displacement: if True, make a test case with a z-displacement
     of 1 from east to west
+    :param z_ranges: Alternate z_ranges for the xml (a dictionary of a row
+    and column tuple and the string that should replace it)
     """
     tempdir = tempfile.mkdtemp()
     try:
@@ -30,6 +36,18 @@ def make_case(constant_value = None, use_raw=False, with_z_displacement=False):
         xml_path = os.path.join(tempdir, "example.xml")
         template = xml_template_with_z_displacement if with_z_displacement\
             else xml_template
+        xml = ET.fromstring(template)
+        stacks_elem = xml.find("STACKS")
+        stack_elems = stacks_elem.findall("Stack")
+        d = {}
+        for stack_elem in stack_elems:
+            d[int(stack_elem.attrib["ROW"]),
+              int(stack_elem.attrib["COL"])] = stack_elem
+        if ranges is not None:
+            for (row, col), z_range in ranges.items():
+                stack_elem = d[row, col]
+                stack_elem.attrib["Z_RANGES"] = z_range
+        template = ET.tostring(xml).decode("utf-8")
         with open(xml_path, "w") as fd:
             fd.write(template.format(tempdir=tempdir,
                                      input_plugin=input_plugin))
@@ -154,6 +172,36 @@ class TestTSVStack(unittest.TestCase):
 
     def test_paths(self):
         with make_case() as ps:
+            xml_path, stacks = ps
+            v = volume.TSVVolume.load(xml_path)
+            s0 = v.stacks[0][0]
+            for i, path in enumerate(s0.paths):
+                filename = FN_PATTERN % (i + 1)
+                expected = os.path.join(v.stacks_dir, s0.dir_name, filename)
+                self.assertEqual(path, expected)
+
+    def test_paths_exclusive_start(self):
+        with make_case(ranges={(0, 1): "(0,2)"}) as ps:
+            xml_path, stacks = ps
+            v = volume.TSVVolume.load(xml_path)
+            s01 = v.stacks[0][1]
+            self.assertEqual(len(s01.paths), 1)
+            filename = FN_PATTERN % 2
+            expected = os.path.join(v.stacks_dir, s01.dir_name, filename)
+            self.assertEqual(s01.paths[0], expected)
+
+    def test_paths_inclusive_end(self):
+        with make_case(ranges={(0, 0): "[0,1]"}) as ps:
+            xml_path, stacks = ps
+            v = volume.TSVVolume.load(xml_path)
+            s0 = v.stacks[0][0]
+            for i, path in enumerate(s0.paths):
+                filename = FN_PATTERN % (i + 1)
+                expected = os.path.join(v.stacks_dir, s0.dir_name, filename)
+                self.assertEqual(path, expected)
+
+    def test_paths_double_range(self):
+        with make_case(ranges={(0, 0): "[0,1);[1,2)"}) as ps:
             xml_path, stacks = ps
             v = volume.TSVVolume.load(xml_path)
             s0 = v.stacks[0][0]

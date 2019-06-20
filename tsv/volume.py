@@ -281,18 +281,23 @@ class TSVStack(TSVStackBase):
         self.dir_name = element.attrib["DIR_NAME"]
         self.input_plugin = input_plugin
         z_ranges = element.attrib["Z_RANGES"]
+        self.__idxs_to_keep = np.zeros(0, int)
         if len(z_ranges) == 0:
-            z0 = z1 = self.z0slice = self.z1slice = 0
+            self.z0slice = self.z1slice = 0
         else:
-            z0, z1 = map(int, z_ranges[1:-1].split(","))
-            if z_ranges.startswith("["):
-                self.z0slice = z0
-            else:
-                self.z0slice = z0+1
-            if z_ranges.endswith(")"):
-                self.z1slice = z1
-            else:
-                self.z1slice = z1+1
+            # format is [AAAA,BBBB);[AAAA,BBBB)
+            # never seen (AAAA,BBBB], but it's coded
+            #
+            for substr in z_ranges.split(";"):
+                z0, z1 = map(int, substr[1:-1].split(","))
+                if not substr.startswith("["):
+                    z0 += 1
+                if not z_ranges.endswith(")"):
+                    z1 += 1
+                self.__idxs_to_keep = \
+                    np.hstack([self.__idxs_to_keep, np.arange(z0, z1)])
+            self.z0slice = 0
+            self.z1slice = len(self.__idxs_to_keep)
         self.img_regex = element.attrib["IMG_REGEX"]
         if ordering_pattern is None:
             ordering_pattern = "[^0-9]*(\\d+).*\\.raw" if input_plugin == "raw"\
@@ -315,7 +320,9 @@ class TSVStack(TSVStackBase):
                     if not re.match(self.img_regex, filename):
                         continue
                 my_paths.append((ordering, os.path.join(directory, filename)))
-            self.__paths = [_[1] for _ in sorted(my_paths)]
+            my_paths = [_[1] for _ in sorted(my_paths)]
+            self.__paths = [my_paths[_] for _ in self.__idxs_to_keep]
+
         return self.__paths
 
 
