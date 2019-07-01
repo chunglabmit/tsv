@@ -92,3 +92,64 @@ Arguments:
 * **--src**: the source directory, typically the raw images
 * **--dest**: the destination directory, typically, the destriped
 images. Defaults to the destriped image directory.
+
+**tsv-simple-convert-2d-tif**: Merge tiled microscope images without alignment.
+Given a stack matrix of x and y coordinates and z planes, perform the merge
+blending to create a tiff stack. The coordinates of each tiles are taken from
+the directory names which are the X and Y coordinates in 10ths of a micron.
+The user specifies the size of a voxel in microns in the X and Y directions
+and the program calculates the displacement of each tile as it blends them
+together.
+
+Arguments:
+
+* **--path**: the path to the root directory of the stack
+* **--voxel-size-xy**: the size of a voxel in the X and Y directions (if the
+acquisition is isotropic in the X and Y directions)
+* **--voxel-size-x**, **--voxel-size-y**: If voxels are sampled anisotropically
+in the X and Y direction by the microscope, these arguments can be used instead
+of --voxel-size-xy to specify the voxel dimensions in microns in the X and Y
+directions.
+* **--voxel-size-z**: the size of a voxel in the Z direction
+* **--output-pattern**: the file name pattern for each z-plane. For example,
+`output/img_{z:04d}.tif` will substitute the z index of each plane into the
+file name, using 4 digits: "output/img_0000.tif", "output/img_0001.tif", etc.
+* **--mipmap-level**: use this parameter to produce a downsampled
+image. A --mipmap-level of 1 will produce images at 1/2 resolution
+and will only produce every other z-slice. A --mipmap-level of 2
+will produce images at 1/4 resolution and so on. By default,
+a full-resolution stack is produced
+* **--volume**: the coordinates to be retrieved. These are specified
+as six numbers separated by commas for the x start, x end, y start,
+y end and z start and z end coordinates. For example, 
+"--volume 1000, 2000, 1000, 2000, 40, 60" would produce 
+20 1000x1000 images starting at x=1000, y=1000 and z=40. By default,
+the full image is written.
+* **--compression**: TIFF files are compressed to save disk space,
+but higher rates of compression take more time to compress and
+decompress. The --compression flag controls the amount of
+compression used when writing the TIFF files. --compression=0
+uses no compression, --compression=9 uses the maximum compression.
+The default is 4 which is a good comprimise between speed and
+disk savings.
+* **--silent**: disables the progress bar
+* **--cpus**: the number of CPUs to use to process the images. The default
+is all of the computer's CPUs.
+
+**tsv-downsample** downsamples a TIF stack. Files are downsampled in the X
+and Y directions.
+
+Arguments:
+
+* **--src**: a glob expression giving the files to downsample, e.g.
+"input/img_*.tif"
+* **--dest**: the destination directory for the downsampled files. Each source
+file is downsampled and stored with the same file name in the destination
+directory.
+* **--downsample-factor**: the factor by which to reduce the image size. For
+example, `--downsample-factor 2` downsamples each file into one that is 1/2
+of the size.
+* **--n-cores**: the number of processes to run simultaneously.
+* **--compression**: the compression level (0-9) to use when writing .tif
+files to the destination directory.
+* **--silent**: don't display the progress bar
