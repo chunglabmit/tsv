@@ -680,16 +680,17 @@ class TSVSimpleVolume(TSVVolumeBase):
 
 
     """
-    def __init__(self, root_dir, voxel_size_xy, voxel_size_z):
+    def __init__(self, root_dir, voxel_size_x, voxel_size_y, voxel_size_z):
         """
 
         :param root_dir: The root directory of the directory tree. It should
         be laid out as <root_dir>/<x-location-in-tenths-of-microns>/
         <x-location-in-tenths-of-microns>_<y-location-in-tenths-of-microns>
-        :param voxel_size_xy: The size of a voxel in the x and y directions
+        :param voxel_size_x: The size of a voxel in the x direction
+        :param voxel_size_y: The size of a voxel in the Y direction
         :param voxel_size_z: The size of a voxel in the Z direction
         """
-        self.voxel_dims = (voxel_size_xy, voxel_size_xy, voxel_size_z)
+        self.voxel_dims = (voxel_size_y, voxel_size_y, voxel_size_z)
         root_path = pathlib.Path(root_dir)
         xdirs = sorted([_ for _ in root_path.glob("*")
                         if _.is_dir() and re.match("[0-9]+", _.name)])
@@ -716,12 +717,12 @@ class TSVSimpleVolume(TSVVolumeBase):
                     xloc = 0
                     x0 = x
                 else:
-                    xloc = int((x - x0) / voxel_size_xy / 10.0)
+                    xloc = int((x - x0) / voxel_size_x / 10.0)
                 if yi == 0:
                     yloc = 0
                     y0 = y
                 else:
-                    yloc = int((y - y0) / voxel_size_xy / 10.0)
+                    yloc = int((y - y0) / voxel_size_y / 10.0)
                 self.offsets[yi][xi] = (xloc, yloc, 0)
                 self.stacks[yi][xi] = \
                     TSVSimpleStack(yi, xi, xloc, yloc, 0, ydir)

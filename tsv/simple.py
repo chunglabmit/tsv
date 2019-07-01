@@ -13,10 +13,15 @@ def parse_args(args=sys.argv[1:]):
                         required=True,
                         help="Path to the root directory of the stack")
     parser.add_argument("--voxel-size-xy",
-                        required=True,
                         type=float,
                         help="The pixel size in the X and Y direction in "
                         "microns")
+    parser.add_argument("--voxel-size-x",
+                        type=float,
+                        help="The pixel size in the X direction in microns")
+    parser.add_argument("--voxel-size-y",
+                        type=float,
+                        help="The pixel size in the Y direction in microns")
     parser.add_argument("--voxel-size-z",
                         type=float,
                         default=1,
@@ -53,8 +58,25 @@ def parse_args(args=sys.argv[1:]):
     return parser.parse_args(args)
 
 
+err_msg = """Error: you must either specify --voxel-size-xy or
+if --voxel-size-xy is not specified, both --voxel-size-x and --voxel-size-y"""
+
+
 def main(args=sys.argv[1:]):
     args = parse_args(args)
+    if args.voxel_size_xy is not None:
+        if args.voxel_size_x is not None or \
+           args.voxel_size_y is not None:
+            print(err_msg, file=sys.stderr)
+            exit(-1)
+        voxel_size_x = voxel_size_y = args.voxel_size_xy
+    elif args.voxel_size_x is not None and args.voxel_size_y is not None:
+        voxel_size_x = args.voxel_size_x
+        voxel_size_y = args.voxel_size_y
+    else:
+        print(err_msg, file=sys.stderr)
+        exit(-1)
+
     if args.mipmap_level == 0:
         mipmap_level = None
     else:
@@ -65,7 +87,8 @@ def main(args=sys.argv[1:]):
     else:
         volume = None
 
-    v = TSVSimpleVolume(args.path, args.voxel_size_xy, args.voxel_size_z)
+    v = TSVSimpleVolume(args.path, voxel_size_x, voxel_size_y,
+                        args.voxel_size_z)
     convert_to_2D_tif(v,
                       args.output_pattern,
                       mipmap_level=mipmap_level,
