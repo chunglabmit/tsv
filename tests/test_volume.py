@@ -281,7 +281,7 @@ class TestTSVSimpleStack(unittest.TestCase):
         with make_case() as ps:
             xml_path, stacks = ps
             root = pathlib.Path(xml_path).parent
-            v = volume.TSVSimpleVolume(root, 1.8, 1.8)
+            v = volume.TSVSimpleVolume(root, 1.8, 1.8, 1.8)
             s1 = v.stacks[0][1]
             self.assertIsInstance(s1, volume.TSVSimpleStack)
             self.assertEqual(
@@ -296,7 +296,7 @@ class TestTSVSimpleStack(unittest.TestCase):
         with make_case() as ps:
             xml_path, stacks = ps
             root = pathlib.Path(xml_path).parent
-            v = volume.TSVSimpleVolume(root, 1.8, 1.8)
+            v = volume.TSVSimpleVolume(root, 1.8, 1.8, 1.8)
             s0 = v.stacks[0][0]
             for i, path in enumerate(s0.paths):
                 filename = FN_PATTERN % (i + 1)
@@ -307,7 +307,7 @@ class TestTSVSimpleStack(unittest.TestCase):
         with make_case() as ps:
             xml_path, stacks = ps
             root = pathlib.Path(xml_path).parent
-            v = volume.TSVSimpleVolume(root, 1.8, 1.8)
+            v = volume.TSVSimpleVolume(root, 1.8, 1.8, 1.8)
             for s in sum(v.stacks, []):
                 self.assertEqual(s.x1, s.x0 + 1024)
                 self.assertEqual(s.y1, s.y0 + 1024)
@@ -317,7 +317,7 @@ class TestTSVSimpleStack(unittest.TestCase):
         with make_case() as ps:
             xml_path, stacks = ps
             root = pathlib.Path(xml_path).parent
-            v = volume.TSVSimpleVolume(root, 1.8, 1.8)
+            v = volume.TSVSimpleVolume(root, 1.8, 1.8, 1.8)
             e = volume.VExtent(0, 10, 11, 21, 0, 2)
             img = v.stacks[0][0].imread(e)
             np.testing.assert_equal(img[0], stacks[0][0][0][11:21, :10])
@@ -327,7 +327,7 @@ class TestTSVSimpleStack(unittest.TestCase):
         with make_case(use_raw=True) as ps:
             xml_path, stacks = ps
             root = pathlib.Path(xml_path).parent
-            v = volume.TSVSimpleVolume(root, 1.8, 1.8)
+            v = volume.TSVSimpleVolume(root, 1.8, 1.8, 1.8)
             e = volume.VExtent(0, 10, 11, 21, 0, 2)
             img = v.stacks[0][0].imread(e)
             np.testing.assert_equal(img[0], stacks[0][0][0][11:21, :10])
@@ -337,7 +337,7 @@ class TestTSVSimpleStack(unittest.TestCase):
         with make_case() as ps:
             xml_path, stacks = ps
             root = pathlib.Path(xml_path).parent
-            v = volume.TSVSimpleVolume(root, 1.8, 1.8)
+            v = volume.TSVSimpleVolume(root, 1.8, 1.8, 1.8)
             e = volume.VExtent(0, 10, 11, 21, 0, 2)
             img = np.zeros(e.shape)
             v.stacks[0][0].imread(e, img)
