@@ -34,7 +34,8 @@ setup(
         "tsv-renumber=tsv.renumber:main",
         "tsv-renumber-directories=tsv.renumber_directories:main",
         "tsv-fill-blanks=tsv.fill_blanks:main",
-        "tsv-downsample=tsv.downsample:main"
+        "tsv-downsample=tsv.downsample:main",
+        "tsv-stitch=tsv.stitch:main"
     ]},
     url="https://github.com/chunglabmit/tsv",
     license="MIT",

@@ -184,7 +184,7 @@ class TSVStackBase(VExtentBase):
         self.__y1 = None
         self.__dtype = None
 
-    def __set_x1y1(self):
+    def _set_x1y1(self):
         if self.__x1 is None:
             if len(self.paths) == 0:
                 self.__x1 = self.x0
@@ -192,9 +192,9 @@ class TSVStackBase(VExtentBase):
                 return
             img = self.read_plane(self.paths[0])
             self.__dtype = img.dtype
-            height, width = img.shape[-2:]
-            self.__x1 = self.x0 + width
-            self.__y1 = self.y0 + height
+            self._height, self._width = img.shape[-2:]
+            self.__x1 = self.x0 + self._width
+            self.__y1 = self.y0 + self._height
 
     @property
     def x0(self):
@@ -203,7 +203,7 @@ class TSVStackBase(VExtentBase):
     @property
     def x1(self):
         """The block's end coordinate in the x direction"""
-        self.__set_x1y1()
+        self._set_x1y1()
         return self.__x1
 
     @property
@@ -213,7 +213,7 @@ class TSVStackBase(VExtentBase):
     @property
     def y1(self):
         """The block's end coordinate in the y direction"""
-        self.__set_x1y1()
+        self._set_x1y1()
         return self.__y1
 
     @property
@@ -227,7 +227,7 @@ class TSVStackBase(VExtentBase):
     @property
     def dtype(self):
         """The numpy dtype of the array data"""
-        self.__set_x1y1()
+        self._set_x1y1()
         return self.__dtype
 
     def read_plane(self, path):
