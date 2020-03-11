@@ -3,6 +3,7 @@ python:
    - 3.5
    - 3.6
 install:
+   - pip install tifffile==2019.7.26
    - pip install -r requirements.txt
    - pip install nose
 script:
