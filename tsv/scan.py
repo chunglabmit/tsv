@@ -2,8 +2,9 @@ import heapq
 import itertools
 import logging
 import multiprocessing
-import os
+import networkx as nx
 import numpy as np
+import os
 import pathlib
 from scipy.ndimage import zoom
 import tifffile
@@ -126,12 +127,6 @@ class ScanStack(TSVStackBase):
                     path=os.path.dirname(path0))
 
 
-class EdgeHeap(list):
-    def __init__(self):
-        super(EdgeHeap, self).__init__()
-        self.age = 0
-
-
 class Edge:
     def __init__(self, xidx, yidx, zidx,
                  xidx1, yidx1, zidx1,
@@ -148,15 +143,6 @@ class Edge:
         self.y_off = y_off
         self.z_off = z_off
         self.age = None
-
-    def push(self, heap:EdgeHeap):
-        self.age = heap.age
-        heapq.heappush(heap, self)
-        heap.age += 1
-
-    def __lt__(self, other):
-        return self.cumulative_score > other.cumulative_score or \
-               (self.score == other.score and self.age < other.age)
 
 
 class AverageDrift:
@@ -543,17 +529,45 @@ class Scanner(TSVVolumeBase):
                    AverageDrift(0, 0, 0, 0, 0, 0, 0, 0, 0))
 
     def adjust_stacks(self, drift:AverageDrift, threshold:float):
+        """
+        Adjust the stacks according to the calculated alignments
+
+        First, find the highest confidence alignment. Use 1-correlation as the "distance" from one block to
+        another and then calculate the shortest path from the highest confidence match. Order blocks by their
+        distance from the highest confidence match and update their coordinates relative to the last block on
+        the path.
+
+        Since we process in order of distance from the best and since scores are always positive, the block
+        to be processed will always be matched with a previously-done block. Also, instead of a simple greedy
+        strategy, the paths favor more direct link-ups rather than convoluted paths that can accumulate alignment
+        errors.
+
+        :param drift: if the match falls below the threshold, use the drift parameters instead of the
+        calculated alignment. The drift is usually pretty accurate.
+        :param threshold: The threshold that determines whether to use the calculated parameters or average drift
+        """
         for stack in self._stacks.values():
             stack.x_aligned = False
             stack.y_aligned = False
             stack.z_aligned = False
 
-        heap = EdgeHeap()
+        graph = nx.Graph()
         best_edge = None
         best_score = 0
 
-
         d = {}
+        node_d = {}
+        node_idx_d = {}
+        last_node_idx = 0
+
+        def get_node_idx(xidx, yidx, zidx, node_idx):
+            key = (xidx, yidx, zidx)
+            if key not in node_idx_d:
+                node_idx_d[key] = node_idx
+                node_d[node_idx] = key
+                node_idx += 1
+            return node_idx_d[key], node_idx
+
         for xinc, yinc, zinc, a in (
                 (1, 0, 0, self.alignments_x),
                 (0, 1, 0, self.alignments_y),
@@ -564,10 +578,6 @@ class Scanner(TSVVolumeBase):
                 yidx1 = yidx + yinc
                 zidx1 = zidx + zinc
                 z, (score, x_off, y_off, z_off) = a[xidx, yidx, zidx][0]
-                if (xidx, yidx, zidx) not in d:
-                    d[xidx, yidx, zidx] = []
-                if (xidx1, yidx1, zidx1) not in d:
-                    d[xidx1, yidx1, zidx1] = []
                 if a is self.alignments_z:
                     s0 = self._stacks[xidx, yidx, zidx]
                     z_off += len(s0.paths)
@@ -578,20 +588,23 @@ class Scanner(TSVVolumeBase):
                               xidx, yidx, zidx,
                               score,
                               -x_off, -y_off, -z_off)
-                d[xidx, yidx, zidx].append(edge01)
-                d[xidx1, yidx1, zidx1].append(edge10)
+                ni0, last_node_idx = get_node_idx(xidx, yidx, zidx, last_node_idx)
+                ni1, last_node_idx = get_node_idx(xidx1, yidx1, zidx1, last_node_idx)
+                graph.add_edge(ni0, ni1, weight=1 - score + np.finfo(float).eps)
+                d[ni0, ni1] = edge01
+                d[ni1, ni0] = edge10
                 if score > best_score:
                     best_score = score
                     best_edge = edge01
-        best_edge.push(heap)
-        s0 = self.get_s0_from_edge(best_edge)
-        s0.x_aligned = s0.y_aligned = s0.z_aligned = True
-        while(len(heap) > 0):
-            edge = heapq.heappop(heap)
+        best_node_idx = node_idx_d[best_edge.xidx, best_edge.yidx, best_edge.zidx]
+        score_dict, path_dict = nx.single_source_dijkstra(graph, best_node_idx)
+        node_order = sorted(score_dict.keys(),key=lambda k:score_dict[k])
+        for node_idx in node_order[1:]:
+            path = path_dict[node_idx]
+            src_node_idx = path[-2]
+            edge = d[src_node_idx, node_idx]
             s0 = self.get_s0_from_edge(edge)
             s1 = self.get_s1_from_edge(edge)
-            if s1.x_aligned:
-                continue
             logging.info("%d,%d,%d->%d,%d,%d" %
                          (edge.xidx, edge.yidx, edge.zidx,
                           edge.xidx1, edge.yidx1, edge.zidx1))
@@ -626,15 +639,6 @@ class Scanner(TSVVolumeBase):
             else:
                 raise NotImplementedError("Logic error, nodes are not adjacent")
 
-            s1.x_aligned = s1.y_aligned = s1.z_aligned = True
-
-            for new_edge in d[edge.xidx1, edge.yidx1, edge.zidx1]:
-                s1a = self.get_s1_from_edge(new_edge)
-                if not s1a.x_aligned:
-                    new_edge.cumulative_score = \
-                        new_edge.score * \
-                        (edge.cumulative_score ** self.edge_power)
-                    new_edge.push(heap)
 
     def get_s0_from_edge(self, edge:Edge) -> ScanStack:
         return self._stacks[edge.xidx, edge.yidx, edge.zidx]

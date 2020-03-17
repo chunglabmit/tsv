@@ -8,6 +8,7 @@ with open("./README.md") as fd:
 install_requires = [
         "numpy",
         "h5py",
+        "networkx",
         "scikit-image",
         "tifffile",
         "tqdm"

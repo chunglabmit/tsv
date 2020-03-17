@@ -1,5 +1,5 @@
-aenum
 h5py
+networkx
 numpy
 scikit-image
 tifffile
