@@ -39,9 +39,9 @@ class ScanStack(TSVStackBase):
     """
     def __init__(self, x0, y0, z0, z0slice, z1slice, paths):
         super(ScanStack, self).__init__()
-        self._x0 = x0
-        self._y0 = y0
-        self._z0 = z0
+        self._x0 = self.x0_orig  = x0
+        self._y0 = self.y0_orig = y0
+        self._z0 = self.z0_orig = z0
         self.x0_trim = 0
         self.x1_trim = 0
         self.y0_trim = 0
@@ -99,6 +99,12 @@ class ScanStack(TSVStackBase):
 
     z0 = property(z0_getter, z0_setter)
 
+    def reset(self):
+        """Reset to original coordinates"""
+        self._x0 = self.x0_orig
+        self._y0 = self.y0_orig
+        self._z0 = self.z0_orig
+
     def read_plane(self, path:pathlib.Path):
         z = zcoord(path) - self.z0slice
         x_off = int(self.x_off_per_z * z + .5)
@@ -144,6 +150,22 @@ class Edge:
         self.z_off = z_off
         self.age = None
 
+    def reverse(self) -> "Edge":
+        """
+        Return the edge going the other way
+        """
+        return Edge(self.xidx1, self.yidx1, self.zidx1,
+                    self.xidx, self.yidx, self.zidx,
+                    self.score, -self.x_off, -self.y_off, -self.z_off)
+
+    def matches(self, other:"Edge"):
+        return self.xidx == other.xidx and\
+               self.yidx == other.yidx and\
+               self.zidx == other.zidx and \
+               self.xidx1 == other.xidx1 and \
+               self.yidx1 == other.yidx1 and \
+               self.zidx1 == other.zidx1
+
 
 class AverageDrift:
     """
@@ -182,7 +204,7 @@ class Scanner(TSVVolumeBase):
                  drift=None,
                  decimate=1,
                  n_cores=os.cpu_count(),
-                 edge_power=1/3):
+                 z_threshold=.85):
         """
         Initialize the scanner with the root path to the directory hierarchy
         and the voxel dimensions
@@ -197,11 +219,8 @@ class Scanner(TSVVolumeBase):
         :param piezo_distance: the distance in microns of the (alleged) travel
         of the piezo mini-stepper and the big step size of the Z motor.
         :param z_skip: align every z_skip'th plane.
-        :param edge_power: Edge scores get multiplied with the scores along
-        the chain from the source, making it more difficult to traverse a
-        circuitous path from one stack to an adjacent one. We take the last
-        edge's cumulative score to the edge_power (between 0 and 1) to
-        balance the two concerns.
+        :param z_threshold: if the score for a z join is above this, always
+        take the join,
         """
         self.pool = None
         self.futures_x = {}
@@ -218,7 +237,7 @@ class Scanner(TSVVolumeBase):
         self.y_slop = y_slop
         self.z_slop = z_slop
         self.dark = dark
-        self.edge_power = edge_power
+        self.z_threshold = z_threshold
         if drift is None:
             self.drift = AverageDrift(0, 0, 0, 0, 0, 0, 0, 0, 0)
         else:
@@ -282,6 +301,11 @@ class Scanner(TSVVolumeBase):
     @property
     def stacks(self):
         return [list(self._stacks.values())]
+
+    def reset(self):
+        """Set all stacks to original values"""
+        for stack in self._stacks.values():
+            stack.reset()
 
     def setup(self, x_slop:int, y_slop:int, z_slop:int, z_skip:int,
               decimate:int, drift:AverageDrift):
@@ -521,14 +545,17 @@ class Scanner(TSVVolumeBase):
         drift = AverageDrift(int(xoffx), int(yoffx), int(zoffx),
                              int(xoffy), int(yoffy), int(zoffy),
                              int(xoffz), int(yoffz), int(zoffz))
-        self.adjust_stacks(drift, threshold)
+        path_dict = self.adjust_stacks(drift, threshold)
+        self.z_fixup(path_dict)
         if z_skip is None:
             z_skip = self.z_skip
         self.setup(int(x_slop), int(y_slop), int(z_slop), z_skip,
                    int(self.decimate // 2),
                    AverageDrift(0, 0, 0, 0, 0, 0, 0, 0, 0))
 
-    def adjust_stacks(self, drift:AverageDrift, threshold:float):
+    PATH_DICT_t = typing.Dict[typing.Tuple[int, int, int], typing.Sequence[typing.Tuple[int, int, int]]]
+
+    def adjust_stacks(self, drift:AverageDrift, threshold:float) -> PATH_DICT_t:
         """
         Adjust the stacks according to the calculated alignments
 
@@ -545,6 +572,8 @@ class Scanner(TSVVolumeBase):
         :param drift: if the match falls below the threshold, use the drift parameters instead of the
         calculated alignment. The drift is usually pretty accurate.
         :param threshold: The threshold that determines whether to use the calculated parameters or average drift
+        :return: a dictionary of position key to a sequence of position keys giving the path through the stacks
+        to the key position.
         """
         for stack in self._stacks.values():
             stack.x_aligned = False
@@ -580,6 +609,11 @@ class Scanner(TSVVolumeBase):
                 z, (score, x_off, y_off, z_off) = a[xidx, yidx, zidx][0]
                 if a is self.alignments_z:
                     s0 = self._stacks[xidx, yidx, zidx]
+                    if z_off == -1:
+                        z_off = 0
+                    if score > self.z_threshold:
+                        # Always take Z if score is high enough
+                        score = 1
                     z_off += len(s0.paths)
                 edge01 = Edge(xidx, yidx, zidx,
                               xidx1, yidx1, zidx1, score,
@@ -638,7 +672,200 @@ class Scanner(TSVVolumeBase):
                 s1.z0 = s0.z0 - drift.zoffz - len(s1.paths)
             else:
                 raise NotImplementedError("Logic error, nodes are not adjacent")
+        return dict([(node_d[k], [node_d[kk] for kk in path_dict[k]])
+                     for k in path_dict])
 
+    def z_fixup(self, path_dict:PATH_DICT_t):
+        """Check for gaps between adjacent Z and fix
+
+        The stack adjustment can result in z1 of the block above less than z0 of the block below, resulting
+        in a gap in Z. We look for the weakest link in the two paths as they diverge from their most common
+        ancestor to find the edge that we can adjust in Z with the least cost.
+
+        path_dict: the calculated path dictionary
+
+        """
+        fixups = 1
+        while fixups > 0:
+            needs_fix = []
+            for xidx, yidx, zidx in self.alignments_z:
+                s0, s1 = self.get_ul_stacks(xidx, yidx, zidx)
+                if s0.z1 < s1.z0:
+                    needs_fix.append((xidx, yidx, zidx))
+            #
+            # order by shortest path so that later fixups might be done by propoagations of those that
+            # need it first
+            #
+            def sort_fn(k):
+                return len(path_dict[k]), k
+            needs_fix = sorted(needs_fix, key=sort_fn)
+            fixups = 0
+            for xidx, yidx, zidx in needs_fix:
+                s0, s1 = self.get_ul_stacks(xidx, yidx, zidx)
+                if s0.z1 < s1.z0:
+                    logging.info("Fixing %d,%d,%d" %
+                                 (xidx, yidx, zidx))
+                    self.one_z_fixup(xidx, yidx, zidx, path_dict)
+                    fixups += 1
+
+    def one_z_fixup(self, xidx:int, yidx:int, zidx:int, path_dict:PATH_DICT_t):
+        """
+        Fix up one z gap
+        :param xidx: x index of upper stack
+        :param yidx: y index of upper stack
+        :param zidx: z index of upper stack
+        :param path_dict: dictionary of all paths
+        """
+        # Find the divergent paths
+        k0 = xidx, yidx, zidx
+        k1 = xidx, yidx, zidx+1
+        s0, s1 = self.get_ul_stacks(xidx, yidx, zidx)
+        path0 = path_dict[k0]
+        path1 = path_dict[k1]
+        # Neither can be each other's parent and have a gap
+        assert (len(path1) == 1 or path1[-1] != k0)
+        assert (len(path0) == 1 or path0[-1] != k1)
+        for idx in range(1, min(len(path0), len(path1))):
+            if path0[idx] != path1[idx]:
+                break
+        while s0.z1 < s1.z0:
+            #
+            # The goal is to find the edge that has the lowest cost of adjustment of lowering zoff by one.
+            #
+            #edges = [self.make_edge(kc, kp) for kp, kc in zip(path0[idx-1:-1], path0[idx:])]
+            edges = [self.make_edge(kp, kc) for kp, kc in zip(path1[idx-1:-1], path1[idx:])]
+            best_edge_score = -1
+            best_edge = None
+            for edge in edges:
+                score = self.compute_edge_z_gradient(edge)
+                if score > best_edge_score:
+                    best_edge_score = score
+                    best_edge = edge
+            if best_edge is None:
+                logging.info("Could not adjust %d, %d, %d" % (xidx, yidx, zidx))
+                return
+            self.adjust_edge(best_edge, best_edge_score, path_dict, zoff = -1)
+
+    def make_edge(self, k0:typing.Tuple[int, int, int], k1:typing.Tuple[int, int, int]) -> Edge:
+        """
+        Make an Edge, given two adjacent stacks
+
+        :param k0: the key of the first stack
+        :param k1: the key of the second stack
+        :return: an edge
+        """
+        xidx0, yidx0, zidx0 = k0
+        xidx1, yidx1, zidx1 = k1
+        negate = False
+        if xidx0 == xidx1 - 1:
+            score, xoff, yoff, zoff = self.alignments_x[xidx0, yidx0, zidx0][0][1]
+        elif xidx0 == xidx1 + 1:
+            score, xoff, yoff, zoff = self.alignments_x[xidx1, yidx1, zidx1][0][1]
+            negate = True
+        elif yidx0 == yidx1 - 1:
+            score, xoff, yoff, zoff = self.alignments_y[xidx0, yidx0, zidx0][0][1]
+        elif yidx0 == yidx1 + 1:
+            score, xoff, yoff, zoff = self.alignments_y[xidx1, yidx1, zidx1][0][1]
+            negate = True
+        elif zidx0 == zidx1 - 1:
+            score, xoff, yoff, zoff = self.alignments_z[xidx0, yidx0, zidx0][0][1]
+        elif zidx0 == zidx1 + 1:
+            score, xoff, yoff, zoff = self.alignments_z[xidx1, yidx1, zidx1][0][1]
+            negate = True
+        else:
+            raise ValueError("%s is not adjacent to %s" % (k0, k1))
+        if negate:
+            xoff, yoff, zoff = -xoff, -yoff, -zoff
+        return Edge(xidx0, yidx0, zidx0, xidx1, yidx1, zidx1, score, xoff, yoff, zoff)
+
+    def compute_edge_z_gradient(self, edge):
+        """
+        Find the cost of adjusting the edge by z-1 and return the cost - the current score
+        :param edge:
+        :return: difference between new score and current score
+        """
+        if edge.xidx < edge.xidx1 or edge.yidx < edge.yidx1 or edge.zidx < edge.zidx1:
+            k0 = edge.xidx, edge.yidx, edge.zidx
+            k1 = edge.xidx1, edge.yidx1, edge.zidx1
+            xoff = edge.x_off
+            yoff = edge.y_off
+            zoff = edge.z_off - 1
+        else:
+            k0 = edge.xidx1, edge.yidx1, edge.zidx1
+            k1 = edge.xidx, edge.yidx, edge.zidx
+            xoff = -edge.x_off
+            yoff = -edge.y_off
+            zoff = -edge.z_off + 1
+        s0 = self._stacks[k0]
+        s1 = self._stacks[k1]
+        if k0[0] < k1[0] or k0[1] < k1[1]:
+            # if x or y, then read planes offset by z
+            z0 = (s0.z1 - s0.z0) // 2
+            z1 = z0 + zoff
+            if k0[0] < k1[0]:
+                fn = score_plane_x
+            else:
+                fn = score_plane_y
+        else:
+            z0 = s0.z1 - s0.z0 + zoff
+            if z0 >= len(s0.paths):
+                # Adjusting would create a new gap
+                return -100000
+            z1 = 0
+            fn = score_plane_z
+        src_img = imread(s0.paths[z0])
+        tgt_img = imread(s1.paths[z1])
+        gscore = fn(src_img, tgt_img, xoff, yoff)[0]
+        return gscore - edge.score
+
+    def adjust_edge(self, edge:Edge, score_adj:float, path_dict:PATH_DICT_t, xoff:int=0, yoff:int=0, zoff:int=0):
+        """
+        Adjust an edge in the path
+        :param edge: The edge to adjust
+        :param score_adj: the amount to add to the edge's current score to get the new score
+        :param path_dict: dictionary of all paths - update every node downstream of edge
+        :param xoff: amount to adjust x
+        :param yoff: amount to adjust y
+        :param zoff: amount to adjust z
+        :return:
+        """
+        path = path_dict[edge.xidx1, edge.yidx1, edge.zidx1]
+        if len(path) == 1 or path[-2] != (edge.xidx, edge.yidx, edge.zidx):
+            # Call with reversed edge
+            return self.adjust_edge(edge.reverse(), score_adj, path_dict, -xoff, -yoff, -zoff)
+        new_score = edge.score + score_adj
+        if edge.xidx == edge.xidx1 - 1:
+            a = self.alignments_x[edge.xidx, edge.yidx, edge.zidx]
+        elif edge.yidx == edge.yidx1 - 1:
+            a = self.alignments_y[edge.xidx, edge.yidx, edge.zidx]
+        else:
+            a = self.alignments_z[edge.xidx, edge.yidx, edge.zidx]
+        a = a[0][1]
+        a[0] = new_score
+        a[1:] = a[1] + xoff, a[2] + yoff, a[3] + zoff
+        #
+        # Adjust every path that has the "to" key in it
+        #
+        k1 = (edge.xidx1, edge.yidx1, edge.zidx1)
+        for k2, path in path_dict.items():
+            if k1 in path:
+                s2 = self._stacks[k2]
+                s2.x0 = s2.x0 + xoff
+                s2.y0 = s2.y0 + yoff
+                s2.z0 = s2.z0 + zoff
+
+    def get_ul_stacks(self, xidx, yidx, zidx):
+        """
+        Get stack and stack below in Z
+
+        :param xidx: x index of stack
+        :param yidx: y index of stack
+        :param zidx: z index of stack
+        :return: stack indexed by xidx, yidx, and zidx and stack below
+        """
+        s0 = self._stacks[xidx, yidx, zidx]
+        s1 = self._stacks[xidx, yidx, zidx + 1]
+        return s0, s1
 
     def get_s0_from_edge(self, edge:Edge) -> ScanStack:
         return self._stacks[edge.xidx, edge.yidx, edge.zidx]
@@ -719,10 +946,10 @@ def align_one(dark, decimate, plane_fn, src_paths, tgt_path, x0_off, x1_off,
                 y1_off, z)
             if best_score  == 0:
                 break
-            x0_off= best_xoff - decimate
-            x1_off = best_xoff + decimate
-            y0_off = best_yoff - decimate
-            y1_off = best_yoff + decimate
+        x0_off= max(0, best_xoff - decimate)
+        x1_off = min(best_xoff + decimate, tgt_img.shape[1])
+        y0_off = max(0, best_yoff - decimate)
+        y1_off = min(best_yoff + decimate, tgt_img.shape[0])
     return best_score, best_xoff, best_yoff, best_zoff
 
 
@@ -731,35 +958,40 @@ def align_plane_x(best_score, best_xoff, best_yoff, best_zoff, dark,
                   y1_off, z):
     for x_off_big in range(x0_off, x1_off, decimate):
         x_off = x_off_big // decimate
-        x00 = x_off
-        x10 = src_img.shape[1]
-        x01 = 0
-        x11 = src_img.shape[1] - x_off
         for y_off_big in range(y0_off, y1_off, decimate):
             y_off = y_off_big // decimate
-            if y_off > 0:
-                y00 = 0
-                y10 = tgt_img.shape[0] - y_off
-                y01 = y_off
-                y11 = tgt_img.shape[0]
-            else:
-                y00 = -y_off
-                y10 = tgt_img.shape[0]
-                y01 = 0
-                y11 = tgt_img.shape[0] + y_off
-            tgt_slice = tgt_img[y01:y11, x01:x11]
-            src_slice = src_img[y00:y10, x00:x10]
+            score, src_slice, tgt_slice = score_plane_x(src_img, tgt_img, x_off, y_off)
             mask = (tgt_slice > dark) & (src_slice > dark)
             if np.sum(mask) < np.sqrt(np.prod(tgt_slice.shape)):
                 continue
-            score = np.corrcoef(tgt_slice.flatten().astype(np.float32),
-                                src_slice.flatten().astype(np.float32))[0, 1]
             if score > best_score:
                 best_score = score
                 best_xoff = x_off_big
                 best_yoff = y_off_big
                 best_zoff = z
     return best_score, best_xoff, best_yoff, best_zoff
+
+
+def score_plane_x(src_img, tgt_img, x_off, y_off):
+    x00 = x_off
+    x10 = src_img.shape[1]
+    x01 = 0
+    x11 = src_img.shape[1] - x_off
+    if y_off > 0:
+        y00 = 0
+        y10 = tgt_img.shape[0] - y_off
+        y01 = y_off
+        y11 = tgt_img.shape[0]
+    else:
+        y00 = -y_off
+        y10 = tgt_img.shape[0]
+        y01 = 0
+        y11 = tgt_img.shape[0] + y_off
+    tgt_slice = tgt_img[y01:y11, x01:x11]
+    src_slice = src_img[y00:y10, x00:x10]
+    score = np.corrcoef(tgt_slice.flatten().astype(np.float32),
+                        src_slice.flatten().astype(np.float32))[0, 1]
+    return score, src_slice, tgt_slice
 
 
 def align_one_y(tgt_path:pathlib.Path,
@@ -794,35 +1026,41 @@ def align_plane_y(best_score, best_xoff, best_yoff, best_zoff, dark, decimate,
                   src_img, tgt_img, x0_off, x1_off, y0_off, y1_off, z):
     for x_off_big in range(x0_off, x1_off, decimate):
         x_off = x_off_big // decimate
-        if x_off > 0:
-            x00 = 0
-            x10 = tgt_img.shape[1] - x_off
-            x01 = x_off
-            x11 = tgt_img.shape[1]
-        else:
-            x00 = -x_off
-            x10 = tgt_img.shape[1]
-            x01 = 0
-            x11 = tgt_img.shape[1] + x_off
         for y_off_big in range(y0_off, y1_off, decimate):
             y_off = y_off_big // decimate
-            y00 = y_off
-            y10 = src_img.shape[0]
-            y01 = 0
-            y11 = src_img.shape[0] - y_off
-            tgt_slice = tgt_img[y01:y11, x01:x11]
-            src_slice = src_img[y00:y10, x00:x10]
+            score, src_slice, tgt_slice = score_plane_y(src_img, tgt_img, x_off, y_off)
             mask = (tgt_slice > dark) & (src_slice > dark)
             if np.sum(mask) < np.sqrt(np.prod(tgt_slice.shape)):
                 continue
-            score = np.corrcoef(tgt_slice.flatten().astype(np.float32),
-                                src_slice.flatten().astype(np.float32))[0, 1]
             if score > best_score:
                 best_score = score
                 best_xoff = x_off_big
                 best_yoff = y_off_big
                 best_zoff = z
     return best_score, best_xoff, best_yoff, best_zoff
+
+
+def score_plane_y(src_img, tgt_img, x_off, y_off):
+    if x_off > 0:
+        x00 = 0
+        x10 = tgt_img.shape[1] - x_off
+        x01 = x_off
+        x11 = tgt_img.shape[1]
+    else:
+        x00 = -x_off
+        x10 = tgt_img.shape[1]
+        x01 = 0
+        x11 = tgt_img.shape[1] + x_off
+    y00 = y_off
+    y10 = src_img.shape[0]
+    y01 = 0
+    y11 = src_img.shape[0] - y_off
+    tgt_slice = tgt_img[y01:y11, x01:x11]
+    src_slice = src_img[y00:y10, x00:x10]
+    score = np.corrcoef(tgt_slice.flatten().astype(np.float32),
+                        src_slice.flatten().astype(np.float32))[0, 1]
+    return score, src_slice, tgt_slice
+
 
 def align_one_z(src_paths:typing.Sequence[pathlib.Path],
                 tgt_path:pathlib.Path,
@@ -859,41 +1097,46 @@ def align_plane_z(best_score, best_xoff, best_yoff, best_z_off, dark, decimate,
                   z_off):
     for x_off_big in range(x0, x1, decimate):
         x_off = x_off_big // decimate
-        if x_off > 0:
-            x00 = 0
-            x10 = tgt_img.shape[1] - x_off
-            x01 = x_off
-            x11 = tgt_img.shape[1]
-        else:
-            x00 = -x_off
-            x10 = tgt_img.shape[1]
-            x01 = 0
-            x11 = tgt_img.shape[1] + x_off
         for y_off_big in range(y0, y1, decimate):
             y_off = y_off_big // decimate
-            if y_off > 0:
-                y00 = 0
-                y10 = tgt_img.shape[0] - y_off
-                y01 = y_off
-                y11 = tgt_img.shape[0]
-            else:
-                y00 = -y_off
-                y10 = tgt_img.shape[0]
-                y01 = 0
-                y11 = tgt_img.shape[0] + y_off
-            tgt_slice = tgt_img[y01:y11, x01:x11]
-            src_slice = src_img[y00:y10, x00:x10]
+            score, src_slice, tgt_slice = score_plane_z(src_img, tgt_img, x_off, y_off)
             mask = (tgt_slice > dark) & (src_slice > dark)
             if np.sum(mask) < np.sqrt(np.prod(tgt_slice.shape)):
                 continue
-            score = np.corrcoef(tgt_slice.flatten().astype(np.float32),
-                                src_slice.flatten().astype(np.float32))[0, 1]
             if score > best_score:
                 best_score = score
                 best_xoff = x_off_big
                 best_yoff = y_off_big
                 best_z_off = z_off
     return best_score, best_xoff, best_yoff, best_z_off
+
+
+def score_plane_z(src_img, tgt_img, x_off, y_off):
+    if x_off > 0:
+        x00 = 0
+        x10 = tgt_img.shape[1] - x_off
+        x01 = x_off
+        x11 = tgt_img.shape[1]
+    else:
+        x00 = -x_off
+        x10 = tgt_img.shape[1]
+        x01 = 0
+        x11 = tgt_img.shape[1] + x_off
+    if y_off > 0:
+        y00 = 0
+        y10 = tgt_img.shape[0] - y_off
+        y01 = y_off
+        y11 = tgt_img.shape[0]
+    else:
+        y00 = -y_off
+        y10 = tgt_img.shape[0]
+        y01 = 0
+        y11 = tgt_img.shape[0] + y_off
+    tgt_slice = tgt_img[y01:y11, x01:x11]
+    src_slice = src_img[y00:y10, x00:x10]
+    score = np.corrcoef(tgt_slice.flatten().astype(np.float32),
+                        src_slice.flatten().astype(np.float32))[0, 1]
+    return score, src_slice, tgt_slice
 
 
 if __name__ == "__main__":
