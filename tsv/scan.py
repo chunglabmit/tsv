@@ -944,11 +944,11 @@ def align_one(dark, decimate, plane_fn, src_paths, tgt_path, x0_off, x1_off,
                 best_score, best_xoff, best_yoff, best_zoff, dark,
                 decimate, src_img, tgt_img_decimate, x0_off, x1_off, y0_off,
                 y1_off, z)
-            if best_score  == 0:
-                break
-        x0_off= max(0, best_xoff - decimate)
+        if best_score  == 0:
+            break
+        x0_off= max(-tgt_img.shape[1], best_xoff - decimate)
         x1_off = min(best_xoff + decimate, tgt_img.shape[1])
-        y0_off = max(0, best_yoff - decimate)
+        y0_off = max(-tgt_img.shape[1], best_yoff - decimate)
         y1_off = min(best_yoff + decimate, tgt_img.shape[0])
     return best_score, best_xoff, best_yoff, best_zoff
 
@@ -1011,7 +1011,8 @@ def align_one_y(tgt_path:pathlib.Path,
     :param x1_off: End looking here
     :param y0_off: Start looking in Y here
     :param y1_off: End looking here
-    :param z_slop: the amount of
+    :param z_off: the z-offset of the first src_path
+    :param dark: the threshold between foreground and background image intensity
     :param decimate: Decimate the image by this amount (= zoom by 1/decimate)
     :return: a 4 tuple of the best alignment score, and the x, y and z offsets
     chosen
@@ -1141,8 +1142,9 @@ def score_plane_z(src_img, tgt_img, x_off, y_off):
 
 if __name__ == "__main__":
     import json
+    import pickle
     logging.basicConfig(level=logging.INFO)
-    root = "/mnt/cephfs/users/lee/data/tsv-scan"
+    root = "/mnt/cephfs/SmartSPIM_CEPH/2020/20200312_15_24_59_AA_MINT-4_488LP15_561LP70_642LP45/Ex_488_Em_0_destriped"
     voxel_size = [.41, .41, 2.0]
     drift = AverageDrift(0, 0, 0, 0, 0, 0, 0, 0, 0)
     scanner = Scanner(
@@ -1153,10 +1155,18 @@ if __name__ == "__main__":
         y_slop=30,
         z_slop=6,
         decimate=8,
-        dark=300,
+        dark=100,
         drift=drift)
 
-
+    s0 = scanner._stacks[1, 1, 2]
+    s1 = scanner._stacks[1, 2, 2]
+    with open("/tmp/align_one_y.pkl", "rb") as fd:
+        d = pickle.load(fd)
+    result = align_one_y(d["tgt_path"],
+                         d["src_paths"],
+                         d["x0_off"], d["x1_off"],
+                         d["y0_off"], d["y1_off"],
+                         72, 100, 8)
     def dump_round(fd):
         json.dump(dict(
             x=dict([(",".join([str(_) for _ in k]), scanner.alignments_x[k])
