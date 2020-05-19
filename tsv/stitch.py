@@ -155,13 +155,14 @@ def main(args=sys.argv[1:]):
     scanner.calculate_next_round_parameters(threshold=opts.threshold)
     scanner.rebase_stacks()
     if opts.stacks:
-        stacks = [stack.as_dict() for stack in sum(scanner.stacks, [])]
+        stacks = [stack.as_dict() for stack in scanner.stacks[0]]
         with open(opts.stacks, "w") as fd:
             json.dump(stacks, fd, indent=2)
     width = scanner.volume.x1
     height = scanner.volume.y1
     futures = []
     done_paths = set()
+    logging.info("Writing output images")
     with multiprocessing.Pool(opts.n_io_cores) as pool:
         for z in range(scanner.volume.z0, scanner.volume.z1):
             path = opts.output_pattern % z

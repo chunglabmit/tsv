@@ -192,9 +192,14 @@ class TSVStackBase(VExtentBase):
                 return
             img = self.read_plane(self.paths[0])
             self.__dtype = img.dtype
-            self._height, self._width = img.shape[-2:]
-            self.__x1 = self.x0 + self._width
-            self.__y1 = self.y0 + self._height
+            height, width = img.shape[-2:]
+            self.set_size(width, height)
+
+    def set_size(self, width:int, height:int):
+        """Set the width and height of the stack planes"""
+        self._height, self._width = height, width
+        self.__x1 = self.x0 + self._width
+        self.__y1 = self.y0 + self._height
 
     @property
     def x0(self):

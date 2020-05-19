@@ -1,12 +1,10 @@
-import heapq
 import itertools
 import logging
 import multiprocessing
-import networkx as nx
 import numpy as np
 import os
 import pathlib
-from scipy.ndimage import zoom
+from scipy.ndimage import zoom, distance_transform_edt
 import tifffile
 import tqdm
 import typing
@@ -132,41 +130,6 @@ class ScanStack(TSVStackBase):
                     orig_z0=orig_z0,
                     path=os.path.dirname(path0))
 
-
-class Edge:
-    def __init__(self, xidx, yidx, zidx,
-                 xidx1, yidx1, zidx1,
-                 score, x_off, y_off, z_off):
-        self.xidx = xidx
-        self.yidx = yidx
-        self.zidx = zidx
-        self.xidx1 = xidx1
-        self.yidx1 = yidx1
-        self.zidx1 = zidx1
-        self.score = score
-        self.cumulative_score = score
-        self.x_off = x_off
-        self.y_off = y_off
-        self.z_off = z_off
-        self.age = None
-
-    def reverse(self) -> "Edge":
-        """
-        Return the edge going the other way
-        """
-        return Edge(self.xidx1, self.yidx1, self.zidx1,
-                    self.xidx, self.yidx, self.zidx,
-                    self.score, -self.x_off, -self.y_off, -self.z_off)
-
-    def matches(self, other:"Edge"):
-        return self.xidx == other.xidx and\
-               self.yidx == other.yidx and\
-               self.zidx == other.zidx and \
-               self.xidx1 == other.xidx1 and \
-               self.yidx1 == other.yidx1 and \
-               self.zidx1 == other.zidx1
-
-
 class AverageDrift:
     """
     The average drift in the x, y and z direction between adjacent x, y and z
@@ -220,7 +183,9 @@ class Scanner(TSVVolumeBase):
         of the piezo mini-stepper and the big step size of the Z motor.
         :param z_skip: align every z_skip'th plane.
         :param z_threshold: if the score for a z join is above this, always
-        take the join,
+        take the join
+        :param path_weight: add an extra weight to 1-score when calculating the
+        graph connecting blocks to favor shorter paths.
         """
         self.pool = None
         self.futures_x = {}
@@ -292,10 +257,14 @@ class Scanner(TSVVolumeBase):
         self.xs, self.ys, self.zs = \
             [sorted(set([_[idx] for _ in stacks.keys()]))
                 for idx in range(3)]
+        self.n_x, self.n_y, self.n_z = [len(_) for _ in (self.xs, self.ys, self.zs)]
+        any_stack = next(iter(stacks.values()))
+        height, width = imread(any_stack.paths[0]).shape
         for (x, y, z), stack in stacks.items():
             xidx = self.xs.index(x)
             yidx = self.ys.index(y)
             zidx = self.zs.index(z)
+            stack.set_size(width, height)
             self._stacks[xidx, yidx, zidx] = stack
 
     @property
@@ -523,7 +492,7 @@ class Scanner(TSVVolumeBase):
                (zmedian, zmin, zmax)
 
     def calculate_next_round_parameters(self, threshold=.75, stds=3.0,
-                                        slop_factor=1.25, z_skip=None):
+                                        slop_factor=1.25):
         (xoffx, xminx, xmaxx), (yoffx, yminx, ymaxx), (zoffx, zminx, zmaxx) = \
         self.accumulate_offsets(self.alignments_x, threshold, stds)
         (xoffy, xminy, xmaxy), (yoffy, yminy, ymaxy), (zoffy, zminy, zmaxy) = \
@@ -545,314 +514,253 @@ class Scanner(TSVVolumeBase):
         drift = AverageDrift(int(xoffx), int(yoffx), int(zoffx),
                              int(xoffy), int(yoffy), int(zoffy),
                              int(xoffz), int(yoffz), int(zoffz))
-        path_dict = self.adjust_stacks(drift, threshold)
-        self.z_fixup(path_dict)
-        if z_skip is None:
-            z_skip = self.z_skip
-        self.setup(int(x_slop), int(y_slop), int(z_slop), z_skip,
+        self.flat_adjust_stacks(threshold)
+        self.setup(int(x_slop), int(y_slop), int(z_slop), self.z_skip,
                    int(self.decimate // 2),
                    AverageDrift(0, 0, 0, 0, 0, 0, 0, 0, 0))
 
-    PATH_DICT_t = typing.Dict[typing.Tuple[int, int, int], typing.Sequence[typing.Tuple[int, int, int]]]
-
-    def adjust_stacks(self, drift:AverageDrift, threshold:float) -> PATH_DICT_t:
+    KEY_t = typing.Tuple[int, int, int]
+    PATH_t = typing.Sequence[KEY_t]
+    SCORE_AND_OFFS_t = typing.Tuple[float, int, int, int]
+    
+    def get_alignment(self, k0:KEY_t, k1:KEY_t) -> SCORE_AND_OFFS_t:
         """
-        Adjust the stacks according to the calculated alignments
-
-        First, find the highest confidence alignment. Use 1-correlation as the "distance" from one block to
-        another and then calculate the shortest path from the highest confidence match. Order blocks by their
-        distance from the highest confidence match and update their coordinates relative to the last block on
-        the path.
-
-        Since we process in order of distance from the best and since scores are always positive, the block
-        to be processed will always be matched with a previously-done block. Also, instead of a simple greedy
-        strategy, the paths favor more direct link-ups rather than convoluted paths that can accumulate alignment
-        errors.
-
-        :param drift: if the match falls below the threshold, use the drift parameters instead of the
-        calculated alignment. The drift is usually pretty accurate.
-        :param threshold: The threshold that determines whether to use the calculated parameters or average drift
-        :return: a dictionary of position key to a sequence of position keys giving the path through the stacks
-        to the key position.
+        Get the appropriate alignment (alignment_x, alignment_y or alignment_z) for the edge
+        represented by k0 and k1
+        
+        :param k0: the source in the path
+        :param k1: the destination in the path
+        :return: a four tuple of score, xoffset, yoffset and zoffset
         """
-        for stack in self._stacks.values():
-            stack.x_aligned = False
-            stack.y_aligned = False
-            stack.z_aligned = False
+        if any([ke0 > ke1 for ke0, ke1 in zip(k0, k1)]):
+            score, xoff, yoff, zoff = self.get_alignment(k1, k0)
+            return score, -xoff, -yoff, -zoff
+        for idx, alignment in enumerate((self.alignments_x, self.alignments_y, self.alignments_z)):
+            if k0[idx] == k1[idx] - 1:
+                return alignment[k0][0][1]
+        raise ValueError("Maybe %s and %s are not adjacent?" % (k0, k1))
 
-        graph = nx.Graph()
-        best_edge = None
-        best_score = 0
+    def check_key(self, direction:str, key:KEY_t)->bool:
+        """
+        Checks to see if a key has an edge in the alignments dictionary
 
-        d = {}
-        node_d = {}
-        node_idx_d = {}
-        last_node_idx = 0
+        :param direction: "x", "y" or "z"
+        :param key: the starting node
+        :return: True if there is another node in the volume in the +1 direction
+        """
+        xidx, yidx, zidx = key
+        xend, yend, zend = [len(_) for _ in (self.xs, self.ys, self.zs)]
+        if direction == "x":
+            xend -= 1
+        elif direction == "y":
+            yend -= 1
+        else:
+            zend -= 1
+        return 0 <= xidx < xend and 0 <= yidx < yend and 0 <= zidx < zend
 
-        def get_node_idx(xidx, yidx, zidx, node_idx):
-            key = (xidx, yidx, zidx)
-            if key not in node_idx_d:
-                node_idx_d[key] = node_idx
-                node_d[node_idx] = key
-                node_idx += 1
-            return node_idx_d[key], node_idx
+    def check_path(self, path:PATH_t)->bool:
+        """
+        Check to make sure all elements of a path are in-bounds
 
-        for xinc, yinc, zinc, a in (
-                (1, 0, 0, self.alignments_x),
-                (0, 1, 0, self.alignments_y),
-                (0, 0, 1, self.alignments_z)
-        ):
-            for xidx, yidx, zidx in a:
-                xidx1 = xidx + xinc
-                yidx1 = yidx + yinc
-                zidx1 = zidx + zinc
-                z, (score, x_off, y_off, z_off) = a[xidx, yidx, zidx][0]
-                if a is self.alignments_z:
-                    s0 = self._stacks[xidx, yidx, zidx]
-                    if z_off == -1:
-                        z_off = 0
-                    if score > self.z_threshold:
-                        # Always take Z if score is high enough
-                        score = 1
-                    z_off += len(s0.paths)
-                edge01 = Edge(xidx, yidx, zidx,
-                              xidx1, yidx1, zidx1, score,
-                              x_off, y_off, z_off)
-                edge10 = Edge(xidx1, yidx1, zidx1,
-                              xidx, yidx, zidx,
-                              score,
-                              -x_off, -y_off, -z_off)
-                ni0, last_node_idx = get_node_idx(xidx, yidx, zidx, last_node_idx)
-                ni1, last_node_idx = get_node_idx(xidx1, yidx1, zidx1, last_node_idx)
-                graph.add_edge(ni0, ni1, weight=1 - score + np.finfo(float).eps)
-                d[ni0, ni1] = edge01
-                d[ni1, ni0] = edge10
-                if score > best_score:
-                    best_score = score
-                    best_edge = edge01
-        best_node_idx = node_idx_d[best_edge.xidx, best_edge.yidx, best_edge.zidx]
-        score_dict, path_dict = nx.single_source_dijkstra(graph, best_node_idx)
-        node_order = sorted(score_dict.keys(),key=lambda k:score_dict[k])
-        for node_idx in node_order[1:]:
-            path = path_dict[node_idx]
-            src_node_idx = path[-2]
-            edge = d[src_node_idx, node_idx]
-            s0 = self.get_s0_from_edge(edge)
-            s1 = self.get_s1_from_edge(edge)
-            logging.info("%d,%d,%d->%d,%d,%d" %
-                         (edge.xidx, edge.yidx, edge.zidx,
-                          edge.xidx1, edge.yidx1, edge.zidx1))
-            if edge.score > threshold:
-                s1.x0 = s0.x0 + edge.x_off
-                s1.y0 = s0.y0 + edge.y_off
-                s1.z0 = s0.z0 + edge.z_off
-            elif edge.xidx + 1 == edge.xidx1:
-                s1.x0 = s0.x0 + drift.xoffx
-                s1.y0 = s0.y0 + drift.yoffx
-                s1.z0 = s0.z0 + drift.zoffx
-            elif edge.xidx == edge.xidx1 + 1:
-                s1.x0 = s0.x0 - drift.xoffx
-                s1.y0 = s0.y0 - drift.yoffx
-                s1.z0 = s0.z0 - drift.zoffx
-            elif edge.yidx + 1 == edge.yidx1:
-                s1.x0 = s0.x0 + drift.xoffy
-                s1.y0 = s0.y0 + drift.yoffy
-                s1.z0 = s0.z0 + drift.zoffy
-            elif edge.yidx == edge.yidx1 + 1:
-                s1.x0 = s0.x0 - drift.xoffy
-                s1.y0 = s0.y0 - drift.yoffy
-                s1.z0 = s0.z0 - drift.zoffy
-            elif edge.zidx + 1 == edge.zidx1:
-                s1.x0 = s0.x0 + drift.xoffz
-                s1.y0 = s0.y0 + drift.yoffz
-                s1.z0 = s0.z0 + drift.zoffz + len(s0.paths)
-            elif edge.zidx == edge.zidx1 + 1:
-                s1.x0 = s0.x0 - drift.xoffz
-                s1.y0 = s0.y0 - drift.yoffz
-                s1.z0 = s0.z0 - drift.zoffz - len(s1.paths)
+        :param path: a path from a source key to a destination key
+        :return: True if the path is in the bounds of the volume
+        """
+        for k0, k1 in zip(path[:-1], path[1:]):
+            xidx0, yidx0, zidx0 = k0
+            xidx1, yidx1, zidx1 = k1
+            if xidx1 == xidx0 + 1:
+                test = self.check_key("x", k1)
+            elif xidx0 == xidx1 + 1:
+                test = self.check_key("x", k0)
+            elif yidx1 == yidx0 + 1:
+                test = self.check_key("y", k1)
+            elif yidx0 == yidx1 + 1:
+                test = self.check_key("y", k0)
+            elif zidx1 == zidx0 + 1:
+                test = self.check_key("z", k1)
             else:
-                raise NotImplementedError("Logic error, nodes are not adjacent")
-        return dict([(node_d[k], [node_d[kk] for kk in path_dict[k]])
-                     for k in path_dict])
+                test = self.check_key("z", k0)
+            if not test:
+                return False
+        return True
 
-    def z_fixup(self, path_dict:PATH_DICT_t):
-        """Check for gaps between adjacent Z and fix
-
-        The stack adjustment can result in z1 of the block above less than z0 of the block below, resulting
-        in a gap in Z. We look for the weakest link in the two paths as they diverge from their most common
-        ancestor to find the edge that we can adjust in Z with the least cost.
-
-        path_dict: the calculated path dictionary
-
+    def get_path_score_and_offsets(self, path:PATH_t) -> SCORE_AND_OFFS_t:
         """
-        fixups = 1
-        while fixups > 0:
-            needs_fix = []
-            for xidx, yidx, zidx in self.alignments_z:
-                s0, s1 = self.get_ul_stacks(xidx, yidx, zidx)
-                if s0.z1 < s1.z0:
-                    needs_fix.append((xidx, yidx, zidx))
-            #
-            # order by shortest path so that later fixups might be done by propoagations of those that
-            # need it first
-            #
-            def sort_fn(k):
-                return len(path_dict[k]), k
-            needs_fix = sorted(needs_fix, key=sort_fn)
-            fixups = 0
-            for xidx, yidx, zidx in needs_fix:
-                s0, s1 = self.get_ul_stacks(xidx, yidx, zidx)
-                if s0.z1 < s1.z0:
-                    logging.info("Fixing %d,%d,%d" %
-                                 (xidx, yidx, zidx))
-                    self.one_z_fixup(xidx, yidx, zidx, path_dict)
-                    fixups += 1
+        Compute the cumulative score and offsets along a path
 
-    def one_z_fixup(self, xidx:int, yidx:int, zidx:int, path_dict:PATH_DICT_t):
+        :param path: a sequence of keys from the starting key to the destination key
+        :return: the cumulative score and offsets following along the path
         """
-        Fix up one z gap
-        :param xidx: x index of upper stack
-        :param yidx: y index of upper stack
-        :param zidx: z index of upper stack
-        :param path_dict: dictionary of all paths
-        """
-        # Find the divergent paths
-        k0 = xidx, yidx, zidx
-        k1 = xidx, yidx, zidx+1
-        s0, s1 = self.get_ul_stacks(xidx, yidx, zidx)
-        path0 = path_dict[k0]
-        path1 = path_dict[k1]
-        # Neither can be each other's parent and have a gap
-        assert (len(path1) == 1 or path1[-1] != k0)
-        assert (len(path0) == 1 or path0[-1] != k1)
-        for idx in range(1, min(len(path0), len(path1))):
-            if path0[idx] != path1[idx]:
-                break
-        while s0.z1 < s1.z0:
-            #
-            # The goal is to find the edge that has the lowest cost of adjustment of lowering zoff by one.
-            #
-            #edges = [self.make_edge(kc, kp) for kp, kc in zip(path0[idx-1:-1], path0[idx:])]
-            edges = [self.make_edge(kp, kc) for kp, kc in zip(path1[idx-1:-1], path1[idx:])]
-            best_edge_score = -1
-            best_edge = None
-            for edge in edges:
-                score = self.compute_edge_z_gradient(edge)
-                if score > best_edge_score:
-                    best_edge_score = score
-                    best_edge = edge
-            if best_edge is None:
-                logging.info("Could not adjust %d, %d, %d" % (xidx, yidx, zidx))
-                return
-            self.adjust_edge(best_edge, best_edge_score, path_dict, zoff = -1)
+        xoff = 0
+        yoff = 0
+        zoff = 0
+        score = 0
+        for k0, k1 in zip(path[:-1], path[1:]):
+            s, xo, yo, zo = self.get_alignment(k0, k1)
+            if s == 0 and np.abs(zo) == 6:
+                xo = yo = zo = 0
+            xoff += xo
+            yoff += yo
+            zoff += zo
+            score += 1 - s
+        return score, xoff, yoff, zoff
 
-    def make_edge(self, k0:typing.Tuple[int, int, int], k1:typing.Tuple[int, int, int]) -> Edge:
+    def get_node_z_paths(self, k0:KEY_t) -> typing.Sequence[PATH_t]:
         """
-        Make an Edge, given two adjacent stacks
-
-        :param k0: the key of the first stack
-        :param k1: the key of the second stack
-        :return: an edge
+        Return short paths from k0 to the node below it in Z
+        The five paths are going straight down and going one in each
+        direction in X and Y, then going down, then going in the opposite
+        direction
+        :param k0: the node's key
+        :return: a sequence of valid paths between K0 and the node below.
         """
         xidx0, yidx0, zidx0 = k0
-        xidx1, yidx1, zidx1 = k1
-        negate = False
-        if xidx0 == xidx1 - 1:
-            score, xoff, yoff, zoff = self.alignments_x[xidx0, yidx0, zidx0][0][1]
-        elif xidx0 == xidx1 + 1:
-            score, xoff, yoff, zoff = self.alignments_x[xidx1, yidx1, zidx1][0][1]
-            negate = True
-        elif yidx0 == yidx1 - 1:
-            score, xoff, yoff, zoff = self.alignments_y[xidx0, yidx0, zidx0][0][1]
-        elif yidx0 == yidx1 + 1:
-            score, xoff, yoff, zoff = self.alignments_y[xidx1, yidx1, zidx1][0][1]
-            negate = True
-        elif zidx0 == zidx1 - 1:
-            score, xoff, yoff, zoff = self.alignments_z[xidx0, yidx0, zidx0][0][1]
-        elif zidx0 == zidx1 + 1:
-            score, xoff, yoff, zoff = self.alignments_z[xidx1, yidx1, zidx1][0][1]
-            negate = True
-        else:
-            raise ValueError("%s is not adjacent to %s" % (k0, k1))
-        if negate:
-            xoff, yoff, zoff = -xoff, -yoff, -zoff
-        return Edge(xidx0, yidx0, zidx0, xidx1, yidx1, zidx1, score, xoff, yoff, zoff)
+        zidx1 = zidx0 + 1
+        return [_ for _ in
+                [
+                    [(xidx0, yidx0, zidx0), (xidx0, yidx0, zidx1)],
+                    [(xidx0, yidx0, zidx0), (xidx0 + 1, yidx0, zidx0), (xidx0 + 1, yidx0, zidx1),
+                     (xidx0, yidx0, zidx1)],
+                    [(xidx0, yidx0, zidx0), (xidx0 - 1, yidx0, zidx0), (xidx0 - 1, yidx0, zidx1),
+                     (xidx0, yidx0, zidx1)],
+                    [(xidx0, yidx0, zidx0), (xidx0, yidx0 + 1, zidx0), (xidx0, yidx0 + 1, zidx1),
+                     (xidx0, yidx0, zidx1)],
+                    [(xidx0, yidx0, zidx0), (xidx0, yidx0 - 1, zidx0), (xidx0, yidx0 - 1, zidx1), (xidx0, yidx0, zidx1)]
+                ] if self.check_path(_)
+                ]
 
-    def compute_edge_z_gradient(self, edge):
+    def compute_all_z_offsets(self, threshold:float) -> np.ndarray:
         """
-        Find the cost of adjusting the edge by z-1 and return the cost - the current score
-        :param edge:
-        :return: difference between new score and current score
-        """
-        if edge.xidx < edge.xidx1 or edge.yidx < edge.yidx1 or edge.zidx < edge.zidx1:
-            k0 = edge.xidx, edge.yidx, edge.zidx
-            k1 = edge.xidx1, edge.yidx1, edge.zidx1
-            xoff = edge.x_off
-            yoff = edge.y_off
-            zoff = edge.z_off - 1
-        else:
-            k0 = edge.xidx1, edge.yidx1, edge.zidx1
-            k1 = edge.xidx, edge.yidx, edge.zidx
-            xoff = -edge.x_off
-            yoff = -edge.y_off
-            zoff = -edge.z_off + 1
-        s0 = self._stacks[k0]
-        s1 = self._stacks[k1]
-        if k0[0] < k1[0] or k0[1] < k1[1]:
-            # if x or y, then read planes offset by z
-            z0 = (s0.z1 - s0.z0) // 2
-            z1 = z0 + zoff
-            if k0[0] < k1[0]:
-                fn = score_plane_x
-            else:
-                fn = score_plane_y
-        else:
-            z0 = s0.z1 - s0.z0 + zoff
-            if z0 >= len(s0.paths):
-                # Adjusting would create a new gap
-                return -100000
-            z1 = 0
-            fn = score_plane_z
-        src_img = imread(s0.paths[z0])
-        tgt_img = imread(s1.paths[z1])
-        gscore = fn(src_img, tgt_img, xoff, yoff)[0]
-        return gscore - edge.score
+        Scan in the z direction, calculating offset to next lowest.
 
-    def adjust_edge(self, edge:Edge, score_adj:float, path_dict:PATH_DICT_t, xoff:int=0, yoff:int=0, zoff:int=0):
+        :param threshold: There's weak support if the cumulative score is above this threshold
+        :return: an array containing the z-offset for any block (other than the last)
         """
-        Adjust an edge in the path
-        :param edge: The edge to adjust
-        :param score_adj: the amount to add to the edge's current score to get the new score
-        :param path_dict: dictionary of all paths - update every node downstream of edge
-        :param xoff: amount to adjust x
-        :param yoff: amount to adjust y
-        :param zoff: amount to adjust z
+        z_offset_dict = {}
+        xend = len(self.xs)
+        yend = len(self.ys)
+        zend = len(self.zs) - 1
+        scores = np.zeros((zend, yend, xend))
+        zoffsets = np.zeros((zend, yend, xend), int)
+        for zi in range(zend):
+            for xi, yi in itertools.product(range(xend),
+                                                range(yend)):
+                score, xoff, yoff, zoff = self.get_best_z_path((xi, yi, zi))
+                scores[zi, yi, xi] = score
+                zoffsets[zi, yi, xi] = zoff
+            mask = scores[zi] > threshold
+            if not np.all(mask):
+                # Assign weak z to nearest strong z
+                distances, (ysrc, xsrc) = distance_transform_edt(mask, return_indices=True)
+                scores[zi, mask] = scores[zi, ysrc[mask], xsrc[mask]]
+                zoffsets[zi, mask] = zoffsets[zi, ysrc[mask], xsrc[mask]]
+        return zoffsets
+
+    def get_best_z_path(self, k0:KEY_t):
+        """
+        Get the lowest scoring path from K0 to the node below it in Z
+
+        :param k0: The node's key
+        :return: the score, x-offset, y-offset and z-offset to the node below
+        """
+        best_score = 1000
+        best_xoff = 0
+        best_yoff = 0
+        best_zoff = 0
+        for path in self.get_node_z_paths(k0):
+            score, xoff, yoff, zoff = self.get_path_score_and_offsets(path)
+            if score < best_score and zoff <= 0:
+                best_score = score
+                best_xoff = xoff
+                best_yoff = yoff
+                best_zoff = zoff
+        return best_score, best_xoff, best_yoff, best_zoff
+
+    def flat_adjust_stacks(self, threshold:float):
+        """
+        For the flat method, what I've seen is this:
+        Z offsets within-stack are similar from stack to stack, so if there's not enough evidence, use
+        the consensus at that z-height.
+
+        Z offsets of stacks increase in a steady fashion in the X direction for a given Y, e.g.
+        there is an increase of C(y) in Z between (x, y, z) and (x+1, y, z). So for each Y, compute the
+        median Z offset between (x, y, z) and (x+1, y, z)
+
+        X and Y offsets are pretty much constant down the length of a z-stack.
+
+        :param threshold:
         :return:
         """
-        path = path_dict[edge.xidx1, edge.yidx1, edge.zidx1]
-        if len(path) == 1 or path[-2] != (edge.xidx, edge.yidx, edge.zidx):
-            # Call with reversed edge
-            return self.adjust_edge(edge.reverse(), score_adj, path_dict, -xoff, -yoff, -zoff)
-        new_score = edge.score + score_adj
-        if edge.xidx == edge.xidx1 - 1:
-            a = self.alignments_x[edge.xidx, edge.yidx, edge.zidx]
-        elif edge.yidx == edge.yidx1 - 1:
-            a = self.alignments_y[edge.xidx, edge.yidx, edge.zidx]
-        else:
-            a = self.alignments_z[edge.xidx, edge.yidx, edge.zidx]
-        a = a[0][1]
-        a[0] = new_score
-        a[1:] = a[1] + xoff, a[2] + yoff, a[3] + zoff
+        logging.info("Adjusting stacks based on alignments")
+        off_z_y = {}
+        off_z_z = {}
         #
-        # Adjust every path that has the "to" key in it
+        # Calculate the z-offset wrt to the z-stack.
+        for z in range(1, self.n_z):
+            all_z = []
+            for x in range(self.n_x):
+                for y in range(self.n_y):
+                    for x in range(self.n_x):
+                        score, off_x, off_y, off_z = self.get_alignment((x, y, z-1), (x, y, z))
+                        if score > threshold:
+                            if off_z == -1:
+                                off_z = 0
+                            off_z_z[x, y, z] = off_z
+                            all_z.append(off_z)
+            median_z = np.median(all_z) if len(all_z) > 0 else 0
+            for x, y in itertools.product(range(self.n_x), range(self.n_y)):
+                if (x, y, z) not in off_z_z:
+                    off_z_z[x, y, z] = median_z
         #
-        k1 = (edge.xidx1, edge.yidx1, edge.zidx1)
-        for k2, path in path_dict.items():
-            if k1 in path:
-                s2 = self._stacks[k2]
-                s2.x0 = s2.x0 + xoff
-                s2.y0 = s2.y0 + yoff
-                s2.z0 = s2.z0 + zoff
+        # Z constantly increases in the X direction for a given Y
+        #
+        for y in range(self.n_y):
+            z_offs = []
+            for x, z in itertools.product(range(1, self.n_x), range(self.n_z)):
+                score, off_x, off_y, off_z = self.get_alignment((x-1, y, z), (x, y, z))
+                if score > threshold:
+                    z_offs.append(off_z)
+            median_z = np.median(z_offs) if len(z_offs) > 0 else 0
+            off_z_y[y] = median_z
+        #
+        # Update z offsets in z-stack
+        #
+        for x, y in itertools.product(range(self.n_x), range(self.n_y)):
+            for z in range(1, self.n_z):
+                if (x, y, z) in off_z_z:
+                    self._stacks[x, y, z].z0 = self._stacks[x, y, z-1].z1 + off_z_z[x, y, z]
+                else:
+                    self._stacks[x, y, z].z0 = self._stacks[x, y, z-1].z1
+        for y in range(self.n_y):
+            off_z = 0
+            for x in range(1, self.n_x):
+                off_z += off_z_y[y]
+                for z in range(self.n_z):
+                    self._stacks[x, y, z].z0 = self._stacks[x, y, z].z0 + off_z
+        #
+        # calculate average X and Y offsets
+        #
+        x_off_xs = []
+        y_off_xs = []
+        x_off_ys = []
+        y_off_ys = []
+        for x, y, z in itertools.product(range(1, self.n_x), range(self.n_y), range(self.n_z)):
+            score, off_x, off_y, off_z = self.get_alignment((x-1, y, z), (x, y, z))
+            if score > threshold:
+                x_off_xs.append(off_x)
+                y_off_xs.append(off_y)
+        x_off_x = np.median(x_off_xs) if len(x_off_xs) > 0 else 0
+        y_off_x = np.median(y_off_xs) if len(y_off_xs) > 0 else 0
+        for x, y, z in itertools.product(range(self.n_x), range(1, self.n_y), range(self.n_z)):
+            score, off_x, off_y, off_z = self.get_alignment((x, y-1, z), (x, y, z))
+            if score > threshold:
+                x_off_ys.append(off_x)
+                y_off_ys.append(off_y)
+        x_off_y = np.median(x_off_ys) if len(x_off_ys) > 0 else 0
+        y_off_y = np.median(y_off_ys) if len(y_off_ys) > 0 else 0
+        for x, y, z in itertools.product(range(self.n_x), range(self.n_y), range(self.n_z)):
+            self._stacks[x, y, z].x0 = x * x_off_x - y * x_off_y
+            self._stacks[x, y, z].y0 = y * y_off_y - x * y_off_x
 
     def get_ul_stacks(self, xidx, yidx, zidx):
         """
@@ -867,16 +775,11 @@ class Scanner(TSVVolumeBase):
         s1 = self._stacks[xidx, yidx, zidx + 1]
         return s0, s1
 
-    def get_s0_from_edge(self, edge:Edge) -> ScanStack:
-        return self._stacks[edge.xidx, edge.yidx, edge.zidx]
-
-    def get_s1_from_edge(self, edge: Edge) -> ScanStack:
-        return self._stacks[edge.xidx1, edge.yidx1, edge.zidx1]
-
     def rebase_stacks(self):
         """
         Readjust the stack offsets so that they start at 0, 0, 0
         """
+        logging.info("Rebasing stacks")
         x0 = np.iinfo(np.int64).max
         y0 = np.iinfo(np.int64).max
         z0 = np.iinfo(np.int64).max
