@@ -537,7 +537,17 @@ class Scanner(TSVVolumeBase):
             return score, -xoff, -yoff, -zoff
         for idx, alignment in enumerate((self.alignments_x, self.alignments_y, self.alignments_z)):
             if k0[idx] == k1[idx] - 1:
-                return alignment[k0][0][1]
+                best_score = 0
+                best_xoff = 0
+                best_yoff = 0
+                best_zoff = 0
+                for z, (score, xoff, yoff, zoff) in alignment[k0]:
+                    if score > best_score:
+                        best_score = score
+                        best_xoff = xoff
+                        best_yoff = yoff
+                        best_zoff = zoff
+                return best_score, best_xoff, best_yoff, best_zoff
         raise ValueError("Maybe %s and %s are not adjacent?" % (k0, k1))
 
     def check_key(self, direction:str, key:KEY_t)->bool:

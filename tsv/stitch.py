@@ -58,6 +58,11 @@ def parse_args(args=sys.argv[1:]):
                              "the range, -z-slop to z-slop inclusive",
                         type=int,
                         default=6)
+    parser.add_argument("--z-skip",
+                        help="For x and y alignments, do one plane out of every z-skip planes. Defaults to doing "
+                        "one plane per alignment.",
+                        type=int,
+                        default="middle")
     parser.add_argument("--dark",
                         help="Voxels with values less than this will be "
                              "considered background. Tiles that are almost "
@@ -136,7 +141,7 @@ def main(args=sys.argv[1:]):
     voxel_size = [float(_) for _ in opts.voxel_size.split(",")]
     scanner = Scanner(pathlib.Path(opts.input),
                       voxel_size=voxel_size,
-                      z_skip="middle",
+                      z_skip=opts.z_skip,
                       x_slop=opts.x_slop,
                       y_slop=opts.y_slop,
                       z_slop=opts.z_slop,
