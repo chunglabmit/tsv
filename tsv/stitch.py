@@ -70,6 +70,10 @@ def parse_args(args=sys.argv[1:]):
                              "values from other alignments.",
                         type=int,
                         default=200)
+    parser.add_argument("--min-support",
+                        help="Minimum number of examples accepted for a composite alignment",
+                        type=int,
+                        default=5)
     parser.add_argument("--n-cores",
                         help="The number of cores to use when calculating",
                         type=int,
@@ -148,6 +152,7 @@ def main(args=sys.argv[1:]):
                       decimate=8,
                       dark=opts.dark,
                       drift=drift,
+                      min_support=opts.min_support,
                       n_cores=opts.n_cores)
     if opts.stack_offset_input:
         with open(opts.stack_offset_input) as fd:

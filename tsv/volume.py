@@ -417,6 +417,7 @@ class Edge(enum.Flag):
 def get_distance_from_edge(tgt:VExtentBase, stack:VExtentBase, ostack:VExtentBase) -> np.ndarray:
     """For the volume, get the distance per voxel to the nearest edge
 
+
     :param tgt: the target volume to be filled
     :param stack: The stack on which to make the distance estimate
     :param ostack: The stack that is overlapping
@@ -432,10 +433,6 @@ def get_distance_from_edge(tgt:VExtentBase, stack:VExtentBase, ostack:VExtentBas
         edges = edges | Edge.YMIN
     if ostack.y0 < stack.y1 < ostack.y1:
         edges = edges | Edge.YMAX
-    if ostack.z1 > stack.z0 > ostack.z0:
-        edges = edges | Edge.ZMIN
-    if ostack.z0 < stack.z1 < ostack.z1:
-        edges = edges | Edge.ZMAX
     volume = stack.intersection(ostack)
     assert volume.contains(tgt)
     #
@@ -446,8 +443,16 @@ def get_distance_from_edge(tgt:VExtentBase, stack:VExtentBase, ostack:VExtentBas
         max_distance = volume.shape[2]
     if ostack.y1 != stack.y1 and ostack.y0 != stack.y0:
         max_distance = min(max_distance, volume.shape[1])
-    if ostack.z1 != stack.z1 and ostack.z0 != stack.z0:
+    #
+    # Blend z edges if and only if the x and y extents are the
+    # entire range
+    #
+    if np.isinf(max_distance) and ostack.z1 != stack.z1 and ostack.z0 != stack.z0:
         max_distance = min(max_distance, volume.shape[0])
+        if ostack.z1 > stack.z0 > ostack.z0:
+            edges = edges | Edge.ZMIN
+        if ostack.z0 < stack.z1 < ostack.z1:
+            edges = edges | Edge.ZMAX
     result = np.ones(tgt.shape, np.float32) * max_distance
     #
     # Process the starting edges

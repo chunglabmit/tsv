@@ -166,8 +166,8 @@ class Scanner(TSVVolumeBase):
                  dark=200,
                  drift=None,
                  decimate=1,
-                 n_cores=os.cpu_count(),
-                 z_threshold=.85):
+                 min_support=5,
+                 n_cores=os.cpu_count()):
         """
         Initialize the scanner with the root path to the directory hierarchy
         and the voxel dimensions
@@ -182,8 +182,7 @@ class Scanner(TSVVolumeBase):
         :param piezo_distance: the distance in microns of the (alleged) travel
         of the piezo mini-stepper and the big step size of the Z motor.
         :param z_skip: align every z_skip'th plane.
-        :param z_threshold: if the score for a z join is above this, always
-        take the join
+        :param min_support: don't make a guess unless at least this many alignments are over threshold
         :param path_weight: add an extra weight to 1-score when calculating the
         graph connecting blocks to favor shorter paths.
         """
@@ -196,13 +195,13 @@ class Scanner(TSVVolumeBase):
         self.alignments_z = {}
         self._stacks = {}
         self.decimate = decimate
+        self.min_support = min_support
         self.x_voxel_size, self.y_voxel_size, self.z_voxel_size = voxel_size
         self.z_skip = z_skip
         self.x_slop = x_slop
         self.y_slop = y_slop
         self.z_slop = z_slop
         self.dark = dark
-        self.z_threshold = z_threshold
         if drift is None:
             self.drift = AverageDrift(0, 0, 0, 0, 0, 0, 0, 0, 0)
         else:
@@ -550,6 +549,27 @@ class Scanner(TSVVolumeBase):
                 return best_score, best_xoff, best_yoff, best_zoff
         raise ValueError("Maybe %s and %s are not adjacent?" % (k0, k1))
 
+    def get_alignments(self, k0: KEY_t, k1: KEY_t, threshold:float) -> typing.Sequence[SCORE_AND_OFFS_t]:
+        """
+        Get all alignments above a threshold (alignment_x, alignment_y or alignment_z) for the edge
+        represented by k0 and k1
+
+        :param k0: the source in the path
+        :param k1: the destination in the path
+        :return: a four tuple of score, xoffset, yoffset and zoffset
+        """
+        if any([ke0 > ke1 for ke0, ke1 in zip(k0, k1)]):
+            alignments = self.get_alignments(k1, k0)
+            return [(score, -xoff, -yoff, -zoff) for score, xoff, yoff, zoff in alignments]
+        alignments = []
+        for idx, alignment in enumerate((self.alignments_x, self.alignments_y, self.alignments_z)):
+            if k0[idx] == k1[idx] - 1:
+                for z, (score, xoff, yoff, zoff) in alignment[k0]:
+                    if score > threshold:
+                        alignments.append((score, xoff, yoff, zoff))
+                return alignments
+        raise ValueError("Maybe %s and %s are not adjacent?" % (k0, k1))
+
     def check_key(self, direction:str, key:KEY_t)->bool:
         """
         Checks to see if a key has an edge in the alignments dictionary
@@ -717,7 +737,7 @@ class Scanner(TSVVolumeBase):
                                 off_z = 0
                             off_z_z[x, y, z] = off_z
                             all_z.append(off_z)
-            median_z = np.median(all_z) if len(all_z) > 0 else 0
+            median_z = np.median(all_z) if len(all_z) > self.min_support else 0
             for x, y in itertools.product(range(self.n_x), range(self.n_y)):
                 if (x, y, z) not in off_z_z:
                     off_z_z[x, y, z] = median_z
@@ -727,10 +747,9 @@ class Scanner(TSVVolumeBase):
         for y in range(self.n_y):
             z_offs = []
             for x, z in itertools.product(range(1, self.n_x), range(self.n_z)):
-                score, off_x, off_y, off_z = self.get_alignment((x-1, y, z), (x, y, z))
-                if score > threshold:
-                    z_offs.append(off_z)
-            median_z = np.median(z_offs) if len(z_offs) > 0 else 0
+                z_offs += [z_off for score, x_off, y_off, z_off in
+                           self.get_alignments((x-1, y, z), (x, y, z), threshold)]
+            median_z = np.median(z_offs) if len(z_offs) >= self.min_support else 0
             off_z_y[y] = median_z
         #
         # Update z offsets in z-stack
@@ -1055,10 +1074,12 @@ def score_plane_z(src_img, tgt_img, x_off, y_off):
 
 if __name__ == "__main__":
     import json
-    import pickle
+    from tsv.volume import VExtent
     logging.basicConfig(level=logging.INFO)
-    root = "/mnt/cephfs/SmartSPIM_CEPH/2020/20200312_15_24_59_AA_MINT-4_488LP15_561LP70_642LP45/Ex_488_Em_0_destriped"
-    voxel_size = [.41, .41, 2.0]
+    root = "/mnt/cephfs/SmartSPIM_CEPH/2019/20190920_14_47_43_#384_488LP35_647LP35/Ex_2_Em_2_destriped"
+    so_path = "/mnt/cephfs/users/lee/2019-09-20_384/stack-offsets_ch2.json"
+    x, y, z = 2573, 3731, 752
+    voxel_size = [1.8, 1.8, 2.0]
     drift = AverageDrift(0, 0, 0, 0, 0, 0, 0, 0, 0)
     scanner = Scanner(
         pathlib.Path(root),
@@ -1070,16 +1091,6 @@ if __name__ == "__main__":
         decimate=8,
         dark=100,
         drift=drift)
-
-    s0 = scanner._stacks[1, 1, 2]
-    s1 = scanner._stacks[1, 2, 2]
-    with open("/tmp/align_one_y.pkl", "rb") as fd:
-        d = pickle.load(fd)
-    result = align_one_y(d["tgt_path"],
-                         d["src_paths"],
-                         d["x0_off"], d["x1_off"],
-                         d["y0_off"], d["y1_off"],
-                         72, 100, 8)
     def dump_round(fd):
         json.dump(dict(
             x=dict([(",".join([str(_) for _ in k]), scanner.alignments_x[k])
@@ -1100,21 +1111,11 @@ if __name__ == "__main__":
         scanner.alignments_z = \
             dict([(tuple(int(_) for _ in k.split(",")), d["z"][k])
                   for k in d["z"]])
+    with open(so_path) as fd:
+        load_round(scanner, fd)
 
-
-    if not os.path.exists("/tmp/round1.json"):
-        scanner.align_all_stacks()
-        with open("/tmp/round1.json", "w") as fd:
-            dump_round(fd)
-    else:
-        with open("/tmp/round1.json", "r") as fd:
-            load_round(scanner, fd)
     scanner.calculate_next_round_parameters()
     scanner.rebase_stacks()
-    for z in tqdm.tqdm(range(scanner.volume.z0, scanner.volume.z1)):
-        plane = scanner.imread(VExtent(0, scanner.volume.x1,
-                                       0, scanner.volume.y1,
-                                       z, z+1), np.uint16)
-        path = "/mnt/cephfs/users/lee/data/tsv-scan/stitched/img_%04d.tiff" % z
-        tifffile.imsave(path, plane.reshape(plane.shape[1], plane.shape[2]),
-                        compress=3)
+    volume = VExtent(x - 500, x + 500, y - 500, y + 500, z - 10, z + 10)
+    img = scanner.imread(volume, np.uint16)
+    tifffile.imsave("/tmp/stitched_volume.tiff", img)
