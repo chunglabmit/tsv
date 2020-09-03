@@ -1,6 +1,7 @@
 """convert.py - programs to convert stacks to output formats"""
 
 import argparse
+import itertools
 import multiprocessing
 import numpy as np
 import os
@@ -8,6 +9,14 @@ import tifffile
 from .volume import VExtent, TSVVolume
 import sys
 import tqdm
+
+try:
+    from blockfs.directory import Directory
+    from mp_shared_memory import SharedMemory
+    from precomputed_tif.blockfs_stack import BlockfsStack
+    blockfs_present = True
+except:
+    blockfs_present = False
 
 
 def convert_to_2D_tif(v, output_pattern,
@@ -74,6 +83,76 @@ def convert_one_plane(v, compression, decimation, dtype,
     tifffile.imsave(path, plane, compress=compression)
 
 
+V:TSVVolume = None
+
+
+if blockfs_present:
+
+    def do_plane(volume:VExtent,
+                 z0:int,
+                 z:int,
+                 sm:SharedMemory,
+                 path:str,
+                 compression:int):
+        mini_volume = VExtent(
+            volume.x0, volume.x1, volume.y0, volume.y1, z, z + 1)
+        plane = V.imread(mini_volume, sm.dtype)[0]
+        dir_path = os.path.dirname(path)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path, exist_ok=True)
+        tifffile.imsave(path, plane, compress=compression)
+        with sm.txn() as memory:
+            memory[z - z0] = plane
+
+
+    def convert_to_tif_and_blockfs(
+            precomputed_path,
+            output_pattern:str,
+            volume:VExtent=None,
+            dtype=None,
+            compression=4,
+            cores=multiprocessing.cpu_count(),
+            io_cores=multiprocessing.cpu_count(),
+            voxel_size=(1800, 1800, 2000),
+            n_levels:int=5):
+        if volume is None:
+            volume = V.volume
+        if dtype is None:
+            dtype = V.dtype
+
+        blockfs_stack = BlockfsStack(volume.shape, precomputed_path)
+        blockfs_stack.write_info_file(n_levels, voxel_size)
+        directory = blockfs_stack.make_l1_directory(io_cores)
+        directory.create()
+        directory.start_writer_processes()
+        sm = SharedMemory((directory.z_block_size,
+                           volume.y1 - volume.y0,
+                           volume.x1 - volume.x0), dtype)
+        with multiprocessing.Pool(cores) as pool:
+            for z0 in tqdm.tqdm(
+                    range(volume.z0, volume.z1, directory.z_block_size)):
+                z1 = min(volume.z1, z0 + directory.z_block_size)
+                futures = []
+                for z in range(z0, z1):
+                    futures.append(pool.apply_async(
+                        do_plane,
+                        (volume, z0, z, sm, output_pattern % z, compression)))
+                for future in futures:
+                    future.get()
+                x0 = np.arange(0, sm.shape[2], directory.x_block_size)
+                x1 = np.minimum(sm.shape[2], x0 + directory.x_block_size)
+                y0 = np.arange(0, sm.shape[1], directory.y_block_size)
+                y1 = np.minimum(sm.shape[1], y0 + directory.y_block_size)
+                with sm.txn() as memory:
+                    for (x0a, x1a), (y0a, y1a) in itertools.product(
+                            zip(x0, x1),zip(y0, y1)):
+                        directory.write_block(memory[:z1-z0, y0a:y1a, x0a:x1a],
+                                              x0a, y0a, z0)
+        directory.close()
+        for level in range(2, n_levels+1):
+            blockfs_stack.write_level_n(level, n_cores=io_cores)
+
+
 def make_diag_stack(xml_path, output_pattern,
                     mipmap_level=None,
                     volume=None,
@@ -131,15 +210,29 @@ def main(args=sys.argv[1:]):
     args, mipmap_level, volume = parse_args(parser, args)
     v = TSVVolume.load(args.xml_path, args.ignore_z_offsets, args.input)
 
-    convert_to_2D_tif(v,
-                      args.output_pattern,
-                      mipmap_level=mipmap_level,
-                      volume=volume,
-                      silent=args.silent,
-                      compression=args.compression,
-                      cores=args.cpus,
-                      ignore_z_offsets=args.ignore_z_offsets,
-                      rotation=args.rotation)
+    if not blockfs_present or args.precomputed_path is None:
+        convert_to_2D_tif(v,
+                          args.output_pattern,
+                          mipmap_level=mipmap_level,
+                          volume=volume,
+                          silent=args.silent,
+                          compression=args.compression,
+                          cores=args.cpus,
+                          ignore_z_offsets=args.ignore_z_offsets,
+                          rotation=args.rotation)
+    else:
+        global V
+        voxel_size = [float(_) for _ in args.voxel_size.split(",")]
+        V = v
+        convert_to_tif_and_blockfs(args.precomputed_path,
+                                   args.output_pattern,
+                                   volume,
+                                   dtype=np.uint16,
+                                   compression=args.compression,
+                                   cores=args.cpus,
+                                   io_cores=args.n_io_cpus,
+                                   voxel_size=voxel_size,
+                                   n_levels = args.levels)
 
 
 def parse_args(parser:argparse.ArgumentParser, args=sys.argv[1:]):
@@ -198,6 +291,29 @@ def parse_args(parser:argparse.ArgumentParser, args=sys.argv[1:]):
         help="Rotate each plane by the given number of degrees. Only 0, 90, "
              "180 and 270 are supported"
     )
+    if blockfs_present:
+        parser.add_argument(
+            "--precomputed-path",
+            help="Path to precomputed neuroglancer volume to be created. "
+            "Default is not to create a neuroglancer volume"
+        )
+        parser.add_argument(
+            "--levels",
+            help="# of neuroglancer mipmap levels to create. Default = 5",
+            type=int,
+            default=5
+        )
+        parser.add_argument(
+            "--n-io-cpus",
+            help="# of CPUs used when creating volume",
+            type=int,
+            default=min(12, multiprocessing.cpu_count())
+        )
+        parser.add_argument(
+            "--voxel-size",
+            help="Voxel size in microns in format x,y,z",
+            default="1.8,1.8,2.0"
+        )
 
     args = parser.parse_args(args)
     if args.mipmap_level == 0:
