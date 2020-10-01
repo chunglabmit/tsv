@@ -239,7 +239,11 @@ class TSVStackBase(VExtentBase):
         if self.input_plugin == "raw":
             return raw_imread(path)
         else:
-            return tifffile.imread(path)
+            try:
+                return tifffile.imread(path)
+            except:
+                print("Bad file: %s" % path)
+                raise
 
     def imread(self, volume, result = None):
         """Read the image data from a block

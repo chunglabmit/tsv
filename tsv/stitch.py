@@ -61,7 +61,6 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--z-skip",
                         help="For x and y alignments, do one plane out of every z-skip planes. Defaults to doing "
                         "one plane per alignment.",
-                        type=int,
                         default="middle")
     parser.add_argument("--dark",
                         help="Voxels with values less than this will be "
@@ -143,9 +142,10 @@ def main(args=sys.argv[1:]):
     logging.basicConfig(level=getattr(logging, opts.log_level))
     drift = AverageDrift(0, 0, 0, 0, 0, 0, 0, 0, 0)
     voxel_size = [float(_) for _ in opts.voxel_size.split(",")]
+    z_skip = opts.z_skip if opts.z_skip == "middle" else int(opts.z_skip)
     scanner = Scanner(pathlib.Path(opts.input),
                       voxel_size=voxel_size,
-                      z_skip=opts.z_skip,
+                      z_skip=z_skip,
                       x_slop=opts.x_slop,
                       y_slop=opts.y_slop,
                       z_slop=opts.z_slop,
