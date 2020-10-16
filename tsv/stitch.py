@@ -98,6 +98,10 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--stacks",
                         help="A JSON dictionary giving the final alignment of "
                              "the stacks")
+    parser.add_argument("--loose-x",
+                        help="Allow for loose, per-Y interpretation of "
+                        "x-offsets",
+                        action="store_true")
     return parser.parse_args(args)
 
 
@@ -153,7 +157,8 @@ def main(args=sys.argv[1:]):
                       dark=opts.dark,
                       drift=drift,
                       min_support=opts.min_support,
-                      n_cores=opts.n_cores)
+                      n_cores=opts.n_cores,
+                      loose_x=opts.loose_x)
     if opts.stack_offset_input:
         with open(opts.stack_offset_input) as fd:
             load_round(fd)

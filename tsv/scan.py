@@ -167,7 +167,8 @@ class Scanner(TSVVolumeBase):
                  drift=None,
                  decimate=1,
                  min_support=5,
-                 n_cores=os.cpu_count()):
+                 n_cores=os.cpu_count(),
+                 loose_x=False):
         """
         Initialize the scanner with the root path to the directory hierarchy
         and the voxel dimensions
@@ -185,6 +186,7 @@ class Scanner(TSVVolumeBase):
         :param min_support: don't make a guess unless at least this many alignments are over threshold
         :param path_weight: add an extra weight to 1-score when calculating the
         graph connecting blocks to favor shorter paths.
+        :param loose_x: interpret X offsets loosely, with different ones per Y
         """
         self.pool = None
         self.futures_x = {}
@@ -201,6 +203,7 @@ class Scanner(TSVVolumeBase):
         self.x_slop = x_slop
         self.y_slop = y_slop
         self.z_slop = z_slop
+        self.loose_x = loose_x
         self.dark = dark
         if drift is None:
             self.drift = AverageDrift(0, 0, 0, 0, 0, 0, 0, 0, 0)
@@ -770,6 +773,7 @@ class Scanner(TSVVolumeBase):
         # calculate average X and Y offsets
         #
         x_off_xs = []
+        x_off_xs_per_x = {}
         y_off_xs = []
         x_off_ys = []
         y_off_ys = []
@@ -777,8 +781,15 @@ class Scanner(TSVVolumeBase):
             score, off_x, off_y, off_z = self.get_alignment((x-1, y, z), (x, y, z))
             if score > threshold:
                 x_off_xs.append(off_x)
+                if x not in x_off_xs_per_x:
+                    x_off_xs_per_x[x-1] = []
+                x_off_xs_per_x[x-1].append(off_x)
                 y_off_xs.append(off_y)
-        x_off_x = np.median(x_off_xs) if len(x_off_xs) > 0 else 0
+        x_off_x = np.ones(self.n_x, int) * np.median(x_off_xs) if len(x_off_xs) > 0 else 0
+        if self.loose_x:
+            for x in range(self.n_x):
+                if x in x_off_xs_per_x:
+                    x_off_x[x] = np.median(x_off_xs_per_x[x])
         y_off_x = np.median(y_off_xs) if len(y_off_xs) > 0 else 0
         for x, y, z in itertools.product(range(self.n_x), range(1, self.n_y), range(self.n_z)):
             score, off_x, off_y, off_z = self.get_alignment((x, y-1, z), (x, y, z))
@@ -788,7 +799,7 @@ class Scanner(TSVVolumeBase):
         x_off_y = np.median(x_off_ys) if len(x_off_ys) > 0 else 0
         y_off_y = np.median(y_off_ys) if len(y_off_ys) > 0 else 0
         for x, y, z in itertools.product(range(self.n_x), range(self.n_y), range(self.n_z)):
-            self._stacks[x, y, z].x0 = x * x_off_x - y * x_off_y
+            self._stacks[x, y, z].x0 = np.sum(x_off_x[:x]) - y * x_off_y
             self._stacks[x, y, z].y0 = y * y_off_y - x * y_off_x
 
     def get_ul_stacks(self, xidx, yidx, zidx):
