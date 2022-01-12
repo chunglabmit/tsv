@@ -70,11 +70,14 @@ def main(args=sys.argv[1:]):
                             continue
                         zs.add(z)
                         if img_shape is None:
-                            z_format = "%%0%dd.tif" % len(img_file.split(".")[0])
+                            z_format = "%%0%dd" % len(img_file.split(".")[0])
                             img_path = os.path.join(src_path_y, img_file)
                             if img_file.endswith(".raw"):
                                 img = raw_imread(img_path)
+                                z_format = z_format + ".tif"
                             else:
+                                extension = img_file[img_file.rfind("."):]
+                                z_format = z_format + extension
                                 img = tifffile.imread(img_path)
                             img_shape = img.shape
                             img_dtype = img.dtype

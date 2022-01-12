@@ -1,6 +1,7 @@
 import contextlib
 import numpy as np
 import os
+import pathlib
 import tifffile
 from tsv.raw import raw_imsave
 from tsv.fill_blanks import main
@@ -10,7 +11,7 @@ import unittest
 
 
 @contextlib.contextmanager
-def make_case(plane_coords, shape, use_raw):
+def make_case(plane_coords, shape, use_raw, tiff_ext=".tif"):
     """
     Make a test case, with files for the plane coordinates.
     :param plane_coords: three tuples of the x, y and z of the planes
@@ -37,9 +38,9 @@ def make_case(plane_coords, shape, use_raw):
             src_path_z = os.path.join(src_path_y, "%08d.raw" % z)
             raw_imsave(src_path_z, img)
         else:
-            src_path_z = os.path.join(src_path_y, "%08d.tif" % z)
+            src_path_z = os.path.join(src_path_y, "%08d" % z) + tiff_ext
             tifffile.imsave(src_path_z, img)
-        dest_path_z = os.path.join(dest_path_y, "%08d.tif" % z)
+        dest_path_z = os.path.join(dest_path_y, "%08d" % z) + tiff_ext
         tifffile.imsave(dest_path_z, img)
     yield (src, dest)
     shutil.rmtree(src, ignore_errors=True)
@@ -104,3 +105,22 @@ class TestFillBlanks(unittest.TestCase):
             img = tifffile.imread(missing)
             for m in missing:
                 self.assertTrue(os.path.exists(m))
+
+    def test_05_tiff_extension(self):
+        # Regression test of bug which made .tif files for every .tiff file
+        case = ((0, 1, 0),
+                (0, 1, 1),
+                (1, 0, 0),
+                (1, 0, 1),
+                (1, 1, 0),
+                (1, 1, 1))
+        with make_case(case, (64, 64), False, tiff_ext=".tiff") as (src, dest):
+            missing = \
+                pathlib.Path(dest) / "00000000" /\
+                "00000000_00000000" / "00000001.tiff"
+            self.assertFalse(missing.exists())
+            main(["--src", src, "--dest", dest])
+            bad_files = sorted(pathlib.Path(dest).glob("**/*.tif"))
+            self.assertEqual(len(bad_files), 0)
+            self.assertTrue(missing.exists())
+
