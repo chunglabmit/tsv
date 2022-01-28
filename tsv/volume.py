@@ -619,7 +619,7 @@ class TSVVolume(TSVVolumeBase):
         self.offsets = [[ None] * self.stack_columns
                         for _ in range(self.stack_rows)]
         self.offsets[0][0] = Location(0, 0, 0)
-        for child in stacks.getchildren():
+        for child in list(stacks):
             if child.tag == "Stack":
                 row = int(child.attrib["ROW"])
                 column = int(child.attrib["COL"])
@@ -628,7 +628,7 @@ class TSVVolume(TSVVolumeBase):
             for column, child in enumerate(elements):
                 if row > 0:
                     prev = self.offsets[row-1][column]
-                    dn = child.find("NORTH_displacements").getchildren()[0]
+                    dn = list(child.find("NORTH_displacements"))[0]
                     xoff = -int(dn.find("H").attrib["displ"])
                     yoff = -int(dn.find("V").attrib["displ"])
                     zoff = 0 if self.ignore_z_offsets \
@@ -639,7 +639,7 @@ class TSVVolume(TSVVolumeBase):
                     self.offsets[row][column] = offset
                 elif column > 0:
                     prev = self.offsets[row][column-1]
-                    dn = child.find("WEST_displacements").getchildren()[0]
+                    dn = list(child.find("WEST_displacements"))[0]
                     xoff = -int(dn.find("H").attrib["displ"])
                     yoff = -int(dn.find("V").attrib["displ"])
                     zoff = 0 if self.ignore_z_offsets \
