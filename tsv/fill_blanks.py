@@ -5,6 +5,7 @@ import numpy as np
 import os
 import sys
 import tifffile
+from PIL import Image
 import tqdm
 from .raw import raw_imread
 
@@ -78,7 +79,7 @@ def main(args=sys.argv[1:]):
                             else:
                                 extension = img_file[img_file.rfind("."):]
                                 z_format = z_format + extension
-                                img = tifffile.imread(img_path)
+                                img = np.array(Image.open(img_path))
                             img_shape = img.shape
                             img_dtype = img.dtype
     x_format = "%%0%dd" % n_digits

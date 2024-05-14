@@ -80,7 +80,14 @@ def convert_one_plane(v, compression, decimation, dtype,
         plane = np.rot90(plane, 2)
     elif rotation == 270:
         plane = np.rot90(plane, 3)
-    tifffile.imsave(path, plane, compress=compression)
+
+    blockingIOErr = True
+    while blockingIOErr:
+        try:
+            tifffile.imsave(path, plane, compress=compression)
+            blockingIOErr = False # succeeded
+        except BlockingIOError:
+            print("tifffile.imsave to the path [ %s ] failed..retrying..."%path)
 
 
 V:TSVVolume = None
@@ -200,7 +207,16 @@ def make_diag_plane(v, compression, decimation, dtype, mipmap_level, output_patt
             list(plane.transpose(2, 0, 1)) +
             [np.zeros(plane.shape[:2], plane.dtype)] * (3-plane.shape[2]))
     path = output_pattern.format(z=z)
-    tifffile.imsave(path, plane, compress=compression, photometric="rgb")
+
+    blockingIOErr = True
+    while blockingIOErr:
+        try:
+            tifffile.imsave(path, plane, compress=compression, photometric="rgb")
+            blockingIOErr = False # succeeded
+        except BlockingIOError:
+            print("tifffile.imsave to the path [ %s ] failed..retrying..."%path)
+
+
 
 
 def main(args=sys.argv[1:]):

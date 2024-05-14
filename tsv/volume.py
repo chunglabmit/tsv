@@ -8,6 +8,7 @@ else:
     import aenum as enum
 import itertools
 import numpy as np
+from PIL import Image
 import os
 import pathlib
 import re
@@ -240,7 +241,8 @@ class TSVStackBase(VExtentBase):
             return raw_imread(path)
         else:
             try:
-                return tifffile.imread(path)
+                img = np.array(Image.open(path))
+                return img
             except:
                 print("Bad file: %s" % path)
                 raise
@@ -310,7 +312,7 @@ class TSVStack(TSVStackBase):
         self.img_regex = element.attrib["IMG_REGEX"]
         if ordering_pattern is None:
             ordering_pattern = "[^0-9]*(\\d+).*\\.raw" if input_plugin == "raw"\
-                               else "[^0-9]*(\\d+).*\\.tiff?"
+                               else "[^0-9]*(\\d+).*\\.*"
         self.ordering_pattern = ordering_pattern
         self.__paths = None
 
@@ -355,7 +357,11 @@ class TSVSimpleStack(TSVStackBase):
                 self.input_plugin = "raw"
             else:
                 self.__paths = sorted(self.root.glob("*.tif*"))
-                self.input_plugin = "tiff2D"
+                if len(self.__paths) > 0:
+                    self.input_plugin = "tiff2D"
+                else:
+                    self.__paths = sorted(self.root.glob("*.png"))
+                    self.input_plugin = "png"
             self.z1slice = len(self.__paths)
         if getattr(os, "fspath", None) is not None:
             return [os.fspath(_) for _ in self.__paths]
@@ -721,6 +727,8 @@ class TSVSimpleVolume(TSVVolumeBase):
         self.stack_slices = len(list(ydirs[0][0].glob("*.raw")))
         if self.stack_slices == 0:
             self.stack_slices = len(list(ydirs[0][0].glob("*.tif*")))
+        if self.stack_slices == 0:
+            self.stack_slices = len(list(ydirs[0][0].glob("*.png")))
         #
         # Make the offsets and the stacks
         #

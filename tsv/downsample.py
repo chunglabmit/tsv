@@ -1,4 +1,6 @@
 import tifffile
+import numpy as np
+from PIL import Image
 from skimage.measure import block_reduce
 import glob
 import multiprocessing
@@ -9,7 +11,8 @@ import sys
 
 
 def downsample(src, dest, factor=2, compress=4):
-    img = tifffile.imread(src)
+    #img = tifffile.imread(src)
+    img = np.array(Image.open(src))
     downsampled = block_reduce(img, block_size=(factor, factor))
     tifffile.imsave(dest, downsampled.astype(img.dtype), compress=compress)
 
