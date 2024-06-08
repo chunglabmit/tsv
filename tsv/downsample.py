@@ -1,6 +1,8 @@
 import tifffile
 import numpy as np
 from PIL import Image
+Image.MAX_IMAGE_PIXELS = 933120000
+
 from skimage.measure import block_reduce
 import glob
 import multiprocessing
